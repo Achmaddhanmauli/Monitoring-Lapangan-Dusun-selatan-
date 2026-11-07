@@ -1,352 +1,950 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoring Lapangan DUSEL</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#007bff">
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 15px; background: #eef2f5; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; }
-        
-        .header-card { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .header-card h2 { margin: 0; color: #4a154b; font-size: 1.4rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        .header-card .author { font-size: 0.8rem; color: #666; font-weight: bold; margin-top: 4px; display: block; }
-        
-        nav { display: flex; gap: 10px; margin-bottom: 20px; background: #fff; padding: 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
-        nav button { flex: 1; background: #f1f3f5; color: #495057; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: all 0.2s ease; }
-        nav button.active { background: #007bff; color: white; box-shadow: 0 2px 4px rgba(0,123,255,0.3); }
-        
-        .page { display: none; }
-        .page.active { display: block; }
-        
-        .form-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        h3 { margin-top: 0; color: #007bff; border-bottom: 2px solid #eef2f5; padding-bottom: 10px; font-size: 1.1rem; }
-        
-        label { display: block; margin-top: 14px; font-weight: 600; font-size: 0.88rem; color: #495057; }
-        input, select, textarea, button { width: 100%; margin-top: 6px; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; font-size: 0.95rem; background: #fafafa; }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: #007bff; background: #fff; box-shadow: 0 0 0 3px rgba(0,123,255,0.15); }
-        
-        .btn-gps { background: #6c757d; color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; margin-top: 12px; }
-        .btn-gps:hover { background: #5a6268; }
-        .btn-submit { background: #28a745; color: white; border: none; cursor: pointer; font-size: 1.05rem; font-weight: bold; margin-top: 24px; box-shadow: 0 3px 6px rgba(40,167,69,0.25); }
-        .btn-submit:hover { background: #218838; }
-        .btn-submit:disabled { background: #6c757d; cursor: not-allowed; box-shadow: none; }
-        
-        .card { background: white; border-radius: 10px; padding: 16px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #007bff; }
-        .card img { max-width: 100%; height: auto; border-radius: 8px; margin-top: 12px; border: 1px solid #dee2e6; display: block; }
-        .card h4 { margin: 0 0 8px 0; color: #212529; font-size: 1.05rem; }
-        .card p { margin: 4px 0; font-size: 0.9rem; color: #495057; }
-        .card a { color: #007bff; text-decoration: none; font-weight: 600; }
-        
-        .badge-pending { background: #fff3cd; color: #856404; padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: bold; display: inline-block; margin-bottom: 10px; border: 1px solid #ffeeba; }
-        .badge-synced { background: #d4edda; color: #155724; padding: 4px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: bold; display: inline-block; margin-bottom: 10px; border: 1px solid #c3e6cb; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Kegiatan Dusun Selatan</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4a154b">
+  <style>
+    :root {
+      --amartha-purple: #4a154b;
+      --turquoise-blue: #008cb4;
+      --navy-blue: #0f4c81;
+      --accent-light: #f5f0ff;
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #cbd5e1;
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 12px 8px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 10px 25px rgba(74, 21, 75, 0.1);
+      padding: 16px 14px;
+      align-self: flex-start;
+      overflow-x: hidden;
+    }
+
+    /* HEADER BANNER BATIK 3-WARNA (TANPA LOGO) */
+    .header {
+      position: relative;
+      text-align: center;
+      margin-bottom: 14px;
+      padding: 22px 14px;
+      background: linear-gradient(135deg, var(--amartha-purple) 0%, var(--navy-blue) 60%, var(--turquoise-blue) 100%);
+      border-radius: var(--radius-md);
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(74, 21, 75, 0.25);
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(255, 255, 255, 0.08) 0%, transparent 45%),
+        repeating-linear-gradient(45deg, transparent, transparent 12px, rgba(255,255,255,0.03) 12px, rgba(255,255,255,0.03) 15px);
+      background-size: cover;
+      opacity: 0.9;
+      z-index: 1;
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .header h1 {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      line-height: 1.3;
+      margin-bottom: 3px;
+    }
+
+    .header p {
+      font-size: 10px;
+      opacity: 0.9;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    /* NAV TABS PILL STYLE */
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      background: #e2e8f0;
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 700;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 11.5px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--amartha-purple);
+      color: #ffffff;
+      box-shadow: 0 3px 8px rgba(74, 21, 75, 0.3);
+    }
+
+    /* FORM STYLES */
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: var(--text-main);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 11.5px;
+      background-color: #f8fafc;
+      color: var(--text-main);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--turquoise-blue);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(0, 140, 180, 0.12);
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      height: 58px;
+    }
+
+    /* TOMBOL AKSI BERDAMPINGAN */
+    .action-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .action-card {
+      background: #f8fafc;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      transition: all 0.2s ease;
+    }
+
+    .action-card:hover {
+      border-color: var(--turquoise-blue);
+      background: var(--accent-light);
+    }
+
+    .action-card span {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: block;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--amartha-purple) 0%, var(--navy-blue) 50%, var(--turquoise-blue) 100%);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 12.5px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      margin-top: 6px;
+      box-shadow: 0 4px 12px rgba(74, 21, 75, 0.25);
+    }
+
+    .btn-submit:disabled {
+      background: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    /* FILTER BAR */
+    .filter-box {
+      background: #f8fafc;
+      border: 1px dashed var(--border-color);
+      padding: 8px;
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    .filter-item {
+      flex: 1;
+    }
+
+    .filter-item label {
+      display: block;
+      font-size: 9.5px;
+      font-weight: 700;
+      margin-bottom: 2px;
+      color: var(--text-muted);
+    }
+
+    .btn-reset {
+      padding: 6px 10px;
+      background: var(--navy-blue);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 600;
+      height: 29px;
+    }
+
+    /* SUMMARY STATISTIK */
+    .summary-box {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .summary-card {
+      background: #ffffff;
+      border-radius: var(--radius-sm);
+      padding: 8px 4px;
+      border: 1.5px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .summary-card:hover {
+      border-color: var(--turquoise-blue);
+    }
+
+    .summary-card.active-card {
+      border-color: var(--amartha-purple) !important;
+      background: var(--accent-light) !important;
+      box-shadow: 0 0 0 2px rgba(74, 21, 75, 0.2);
+    }
+
+    .summary-card h4 {
+      font-size: 7.5px;
+      color: var(--navy-blue);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      margin-bottom: 2px;
+      text-align: center;
+    }
+
+    .summary-card p {
+      font-size: 12.5px;
+      font-weight: 850;
+      color: var(--amartha-purple);
+    }
+
+    .summary-subtext {
+      font-size: 7.5px;
+      color: var(--turquoise-blue);
+      font-weight: 800;
+      margin-top: 1px;
+    }
+
+    /* GRID 3 KOLOM LAPORAN */
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+
+    .card-item {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 7px;
+      font-size: 8.5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .card-item:hover {
+      border-color: var(--turquoise-blue);
+      transform: translateY(-1px);
+    }
+
+    .card-title {
+      font-weight: 850;
+      color: var(--navy-blue);
+      font-size: 9.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 52px;
+    }
+
+    .badge-sync {
+      background: #dcfce7;
+      color: #15803d;
+      padding: 1px 4px;
+      border-radius: 6px;
+      font-size: 7px;
+      font-weight: 800;
+    }
+
+    .badge-pending {
+      background: #fef3c7;
+      color: #b45309;
+      padding: 1px 4px;
+      border-radius: 6px;
+      font-size: 7px;
+      font-weight: 800;
+    }
+
+    .img-preview {
+      width: 100%;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-top: 4px;
+      cursor: pointer;
+      border: 1px solid #f1f5f9;
+    }
+
+    /* MODAL POPUP FOTO */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.75);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-overlay.active {
+      display: flex !important;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      padding: 8px;
+      border-radius: var(--radius-md);
+      max-width: 88vw;
+      max-height: 60vh;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .modal-content img {
+      max-width: 100%;
+      max-height: 50vh;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header-card">
-            <h2>Report Kegiatan Dusun Selatan</h2>
-            <span class="author">Created by : Zidan</span>
+<div class="app-container">
+  <!-- HEADER BANNER BATIK -->
+  <div class="header">
+    <div class="header-content">
+      <h1>REPORT KEGIATAN DUSUN SELATAN</h1>
+      <p>Created by : Zidan</p>
+    </div>
+  </div>
+
+  <!-- NAVIGATION TABS -->
+  <div class="nav-tabs">
+    <button type="button" class="tab-btn active" onclick="switchTab('input')">Input Laporan</button>
+    <button type="button" class="tab-btn" onclick="switchTab('report')">Report Kegiatan</button>
+  </div>
+
+  <!-- TAB 1: INPUT LAPORAN -->
+  <div id="tab-input" class="tab-content">
+    <form id="reportForm">
+      <div class="form-group">
+        <label>Pilih Nama Petugas</label>
+        <select id="namaPetugas" class="form-control" required>
+          <option value="">👤 Pilih Nama Petugas ...</option>
+          <option value="Abdul Hamit">Abdul Hamit</option>
+          <option value="Frengky">Frengky</option>
+          <option value="Fatimah">Fatimah</option>
+          <option value="Hikmah Aulia">Hikmah Aulia</option>
+          <option value="Ahmad Irpansyah">Ahmad Irpansyah</option>
+        </select>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Jenis Kegiatan</label>
+          <select id="jenisKegiatan" class="form-control" onchange="togglePlafondField()" required>
+            <option value="">📋 Jenis Kegiatan</option>
+            <option value="Uji Kelayakan">Uji Kelayakan</option>
+            <option value="Home Visit">Home Visit</option>
+            <option value="Sosialisasi">Sosialisasi</option>
+            <option value="Kumpulan Pelayanan">Kumpulan Pelayanan</option>
+            <option value="Door to door">Door to door</option>
+          </select>
         </div>
 
-        <nav>
-            <button id="btnNavInput" class="active" onclick="showPage('input')">Input Laporan</button>
-            <button id="btnNavReport" onclick="showPage('report')">Report Kegiatan</button>
-        </nav>
-
-        <div id="inputPage" class="page active">
-            <div class="form-card">
-                <form id="laporanForm">
-                    <h3>Input Laporan Lapangan</h3>
-                    
-                    <label for="namaPetugas">Pilih Nama Petugas</label>
-                    <select id="namaPetugas" required>
-                        <option value="">-- Pilih Petugas --</option>
-                        <option value="Abdul Hamit">Abdul Hamit</option>
-                        <option value="Frengky">Frengky</option>
-                        <option value="Fatimah">Fatimah</option>
-                        <option value="Hikmah Aulia">Hikmah Aulia</option>
-                        <option value="Ahmad Irpansyah">Ahmad Irpansyah</option>
-                    </select>
-
-                    <label for="jenisKegiatan">Jenis Kegiatan</label>
-                    <select id="jenisKegiatan" required>
-                        <option value="">-- Pilih Jenis Kegiatan --</option>
-                        <option value="Uji Kelayakan">Uji Kelayakan</option>
-                        <option value="Home Visit">Home Visit</option>
-                        <option value="Sosialisasi">Sosialisasi</option>
-                        <option value="Kumpulan Pelayanan">Kumpulan Pelayanan</option>
-                        <option value="DTD">Door to door</option>
-                    </select>
-
-                    <label for="waktuKegiatan">Waktu Kegiatan</label>
-                    <input type="datetime-local" id="waktuKegiatan" required>
-
-                    <label for="keteranganKegiatan">Keterangan Kegiatan</label>
-                    <textarea id="keteranganKegiatan" rows="4" placeholder="Jelaskan detail kegiatan..." required></textarea>
-
-                    <label for="foto">Foto Kegiatan</label>
-                    <input type="file" id="foto" accept="image/*" capture="environment" required>
-
-                    <button type="button" class="btn-gps" onclick="getGPS()">📍 Ambil Titik Lokasi GPS</button>
-                    <input type="text" id="gps" readonly placeholder="Koordinat GPS (Latitude, Longitude)" required>
-
-                    <button type="submit" class="btn-submit" id="btnSubmit">Kirim Laporan</button>
-                </form>
-            </div>
+        <div class="form-group hidden" id="groupPlafond">
+          <label>Jumlah Plafond (Rp)</label>
+          <select id="plafond" class="form-control">
+            <option value="0">Rp Nominal</option>
+            <option value="1000000">Rp 1 Juta</option>
+            <option value="2000000">Rp 2 Juta</option>
+            <option value="3000000">Rp 3 Juta</option>
+            <option value="4000000">Rp 4 Juta</option>
+            <option value="5000000">Rp 5 Juta</option>
+            <option value="6000000">Rp 6 Juta</option>
+            <option value="7000000">Rp 7 Juta</option>
+            <option value="8000000">Rp 8 Juta</option>
+            <option value="9000000">Rp 9 Juta</option>
+            <option value="10000000">Rp 10 Juta</option>
+            <option value="11000000">Rp 11 Juta</option>
+            <option value="12000000">Rp 12 Juta</option>
+            <option value="13000000">Rp 13 Juta</option>
+            <option value="14000000">Rp 14 Juta</option>
+            <option value="15000000">Rp 15 Juta</option>
+          </select>
         </div>
+      </div>
 
-        <div id="reportPage" class="page">
-            <div class="form-card">
-                <h3>Riwayat Laporan</h3>
-                <div id="reportList">Memuat laporan dari Google Sheets...</div>
-            </div>
+      <div class="form-group">
+        <label>Waktu Kegiatan</label>
+        <input type="datetime-local" id="waktuKegiatan" class="form-control" required>
+      </div>
+
+      <div class="form-group">
+        <label>Keterangan Kegiatan</label>
+        <textarea id="keteranganKegiatan" class="form-control" placeholder="Jelaskan detail kegiatan..." required></textarea>
+      </div>
+
+      <div class="action-grid-2">
+        <div class="action-card" onclick="document.getElementById('fotoKegiatan').click()">
+          <span style="font-size: 16px; margin-bottom: 2px;">📷</span>
+          <span>Foto Kegiatan</span>
+          <span style="font-size: 7.5px; color: var(--text-muted);">(Kamera Live)</span>
         </div>
+        <div class="action-card" onclick="getGPSLocation()">
+          <span style="font-size: 16px; margin-bottom: 2px;">📍</span>
+          <span>Ambil Lokasi</span>
+          <span style="font-size: 7.5px; color: var(--text-muted);">(GPS Otomatis)</span>
+        </div>
+      </div>
+
+      <input type="file" id="fotoKegiatan" class="hidden" accept="image/*" onchange="previewFileName(this)" required>
+      <div id="fileStatus" style="font-size: 8.5px; color: var(--amartha-purple); font-weight: 700; margin-bottom: 8px; text-align: center;"></div>
+
+      <div class="form-group">
+        <input type="text" id="gps" class="form-control" placeholder="Titik Koordinat GPS (Latitude, Longitude)" readonly style="background: #ffffff; text-align: center; font-weight: 600; font-size: 10px;">
+      </div>
+
+      <button type="submit" id="btnSubmit" class="btn-submit">Kirim Laporan</button>
+    </form>
+  </div>
+
+  <!-- TAB 2: REPORT KEGIATAN & STATISTIK -->
+  <div id="tab-report" class="tab-content hidden">
+    <h3 style="margin-bottom: 6px; color: var(--amartha-purple); font-size: 11px; font-weight: 800;">Riwayat & Statistik Laporan</h3>
+
+    <div class="filter-box">
+      <div class="filter-row">
+        <div class="filter-item">
+          <label>Filter Petugas</label>
+          <select id="filterPetugas" class="form-control" style="padding: 3px 5px; font-size: 9.5px;" onchange="applyFilters()">
+            <option value="">Semua Petugas</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>Filter Tanggal</label>
+          <input type="date" id="filterTanggal" class="form-control" style="padding: 3px 5px; font-size: 9.5px;" onchange="applyFilters()">
+        </div>
+        <button type="button" class="btn-reset" onclick="resetFilters()">Reset</button>
+      </div>
     </div>
 
-    <script>
-        // URL Web App Google Apps Script Endpoint
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
+    <div class="summary-box">
+      <div class="summary-card active-card" id="card-All" onclick="filterByJenis('')">
+        <h4>TOTAL LAPORAN</h4>
+        <p id="sumTotalKegiatan">0</p>
+      </div>
+      <div class="summary-card" id="card-UjiKelayakan" onclick="filterByJenis('Uji Kelayakan')">
+        <h4>UJI KELAYAKAN</h4>
+        <p id="sumUjiKelayakan">0</p>
+        <div class="summary-subtext" id="sumTotalPlafond">Rp 0</div>
+      </div>
+      <div class="summary-card" id="card-HomeVisit" onclick="filterByJenis('Home Visit')">
+        <h4>HOME VISIT</h4>
+        <p id="sumHomeVisit">0</p>
+      </div>
+      <div class="summary-card" id="card-Sosialisasi" onclick="filterByJenis('Sosialisasi')">
+        <h4>SOSIALISASI</h4>
+        <p id="sumSosialisasi">0</p>
+      </div>
+      <div class="summary-card" id="card-KumpulanPelayanan" onclick="filterByJenis('Kumpulan Pelayanan')">
+        <h4>KUMPULAN PELAYANAN</h4>
+        <p id="sumKumpulanPelayanan">0</p>
+      </div>
+      <div class="summary-card" id="card-DoorToDoor" onclick="filterByJenis('Door to door')">
+        <h4>DOOR TO DOOR</h4>
+        <p id="sumDoorToDoor">0</p>
+      </div>
+    </div>
 
-        function setDefaultDateTime() {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
-        }
+    <div id="reportContainer" class="report-grid">
+      <p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9.5px; padding: 15px;">Memuat data laporan...</p>
+    </div>
+  </div>
+</div>
 
-        function showPage(pageId) {
-            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-            
-            if(pageId === 'input') {
-                document.getElementById('inputPage').classList.add('active');
-                document.getElementById('btnNavInput').classList.add('active');
-            } else if(pageId === 'report') {
-                document.getElementById('reportPage').classList.add('active');
-                document.getElementById('btnNavReport').classList.add('active');
-                displayReports();
-                fetchReportsFromSheets();
-            }
-        }
+<div id="photoModal" class="modal-overlay" onclick="closeModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+    <img id="modalImg" src="" alt="Pratinjau Foto Laporan">
+  </div>
+</div>
 
-        function getGPS() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    const lat = position.coords.latitude.toFixed(6);
-                    const lng = position.coords.longitude.toFixed(6);
-                    document.getElementById('gps').value = `${lat}, ${lng}`;
-                }, error => {
-                    alert('Gagal mengambil GPS. Pastikan izin lokasi aktif pada browser Anda.');
-                });
-            } else {
-                alert('Browser tidak mendukung lokasi GPS.');
-            }
-        }
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
-        function compressImage(file, maxWidth = 800, quality = 0.7) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
+  let allReports = [];
+  let activeJenisFilter = ""; 
 
-                        if (width > maxWidth) {
-                            height = Math.round((height * maxWidth) / width);
-                            width = maxWidth;
-                        }
+  function previewFileName(input) {
+    const status = document.getElementById('fileStatus');
+    if (input.files && input.files[0]) {
+      status.innerText = "✓ Foto Berhasil Dipilih (Kamera Live)";
+    } else {
+      status.innerText = "";
+    }
+  }
 
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', quality));
-                    };
-                    img.onerror = (err) => reject(err);
-                };
-                reader.onerror = (err) => reject(err);
-            });
-        }
+  function togglePlafondField() {
+    const jenis = document.getElementById('jenisKegiatan').value;
+    const groupPlafond = document.getElementById('groupPlafond');
+    if (jenis === 'Uji Kelayakan') {
+      groupPlafond.classList.remove('hidden');
+    } else {
+      groupPlafond.classList.add('hidden');
+      document.getElementById('plafond').value = "0";
+    }
+  }
 
-        async function sendPayload(payload) {
-            return fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-        }
+  function switchTab(tab) {
+    const btnInput = document.querySelectorAll('.tab-btn')[0];
+    const btnReport = document.querySelectorAll('.tab-btn')[1];
+    const tabInput = document.getElementById('tab-input');
+    const tabReport = document.getElementById('tab-report');
 
-        async function fetchReportsFromSheets() {
-            if (!navigator.onLine) return;
-            try {
-                const response = await fetch(SCRIPT_URL, { redirect: 'follow' });
-                const result = await response.json();
-                if (result.result === 'success' && Array.isArray(result.data)) {
-                    localStorage.setItem('cached_synced_reports', JSON.stringify(result.data));
-                    displayReports();
-                }
-            } catch (err) {
-                console.error('Gagal menarik data dari Google Sheets:', err);
-            }
-        }
+    if (tab === 'input') {
+      btnInput.classList.add('active');
+      btnReport.classList.remove('active');
+      tabInput.classList.remove('hidden');
+      tabReport.classList.add('hidden');
+    } else {
+      btnReport.classList.add('active');
+      btnInput.classList.remove('active');
+      tabReport.classList.remove('hidden');
+      tabInput.classList.add('hidden');
+      loadReports();
+    }
+  }
 
-        async function syncPendingReports() {
-            if (!navigator.onLine) return;
+  window.addEventListener('DOMContentLoaded', () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
+  });
 
-            let reports = JSON.parse(localStorage.getItem('reports')) || [];
-            let hasChanges = false;
+  function getGPSLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude.toFixed(6);
+          const lng = position.coords.longitude.toFixed(6);
+          document.getElementById('gps').value = `${lat}, ${lng}`;
+          alert("Titik Lokasi GPS Berhasil Didapatkan!");
+        },
+        () => alert("Gagal mengambil lokasi GPS. Pastikan izin lokasi aktif.")
+      );
+    } else {
+      alert("Browser tidak mendukung Fitur GPS.");
+    }
+  }
 
-            for (let i = 0; i < reports.length; i++) {
-                if (reports[i].status === 'pending') {
-                    try {
-                        await sendPayload(reports[i].payload);
-                        reports[i].status = 'synced';
-                        hasChanges = true;
-                    } catch (err) {
-                        console.error('Gagal menyinkronkan laporan pending:', err);
-                    }
-                }
-            }
+  function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  }
 
-            if (hasChanges) {
-                const pendingOnly = reports.filter(r => r.status === 'pending');
-                localStorage.setItem('reports', JSON.stringify(pendingOnly));
-                await fetchReportsFromSheets();
-            }
-        }
+  function formatRupiah(number) {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
+  }
 
-        window.addEventListener('online', () => {
-            syncPendingReports();
-            fetchReportsFromSheets();
+  document.getElementById('reportForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btnSubmit = document.getElementById('btnSubmit');
+    btnSubmit.disabled = true;
+    btnSubmit.innerText = "Mengirim Laporan...";
+
+    try {
+      const fotoFile = document.getElementById('fotoKegiatan').files[0];
+      let fotoBase64 = "";
+      if (fotoFile) {
+        fotoBase64 = await toBase64(fotoFile);
+      }
+
+      const payload = {
+        namaPetugas: document.getElementById('namaPetugas').value,
+        jenisKegiatan: document.getElementById('jenisKegiatan').value,
+        plafond: document.getElementById('plafond').value || "0",
+        waktuKegiatan: document.getElementById('waktuKegiatan').value.replace("T", " "),
+        keteranganKegiatan: document.getElementById('keteranganKegiatan').value,
+        foto: fotoBase64,
+        gps: document.getElementById('gps').value
+      };
+
+      if (navigator.onLine) {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
+        alert("Laporan berhasil dikirim ke Google Sheets!");
+      } else {
+        saveOfflineReport(payload);
+        alert("Koneksi offline: Laporan disimpan sementara di HP dan akan terkirim otomatis saat online.");
+      }
 
-        document.getElementById('laporanForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const submitBtn = document.getElementById('btnSubmit');
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'Mengompres Foto & Mengirim...';
+      document.getElementById('reportForm').reset();
+      document.getElementById('fileStatus').innerText = "";
+      togglePlafondField();
+    } catch (err) {
+      alert("Gagal mengirim laporan: " + err.message);
+    } finally {
+      btnSubmit.disabled = false;
+      btnSubmit.innerText = "Kirim Laporan";
+    }
+  });
 
-            const namaPetugas = document.getElementById('namaPetugas').value;
-            const jenisKegiatan = document.getElementById('jenisKegiatan').value;
-            const waktuKegiatan = document.getElementById('waktuKegiatan').value;
-            const keteranganKegiatan = document.getElementById('keteranganKegiatan').value;
-            const gps = document.getElementById('gps').value;
-            const fotoInput = document.getElementById('foto');
+  function saveOfflineReport(data) {
+    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    offlineData.push(data);
+    localStorage.setItem('offline_reports', JSON.stringify(offlineData));
+  }
 
-            if (!fotoInput.files || !fotoInput.files[0]) {
-                alert('Silakan pilih atau ambil foto kegiatan terlebih dahulu.');
-                submitBtn.disabled = false;
-                submitBtn.innerText = 'Kirim Laporan';
-                return;
-            }
+  window.addEventListener('online', async () => {
+    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    if (offlineData.length > 0) {
+      for (let data of offlineData) {
+        try {
+          await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        } catch (e) {}
+      }
+      localStorage.removeItem('offline_reports');
+      alert("Laporan tersimpan offline berhasil disinkronkan ke Google Sheets!");
+      loadReports();
+    }
+  });
 
-            try {
-                const fotoBase64 = await compressImage(fotoInput.files[0]);
-                
-                const payload = {
-                    namaPetugas,
-                    jenisKegiatan,
-                    waktuKegiatan,
-                    keteranganKegiatan,
-                    gps,
-                    foto: fotoBase64
-                };
+  async function loadReports() {
+    const container = document.getElementById('reportContainer');
+    container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9.5px; padding: 15px;">Memuat data...</p>`;
 
-                const reportEntry = {
-                    id: Date.now(),
-                    namaPetugas,
-                    jenisKegiatan,
-                    waktuKegiatan,
-                    keteranganKegiatan,
-                    gps,
-                    fotoUrl: fotoBase64,
-                    status: 'pending',
-                    payload
-                };
+    try {
+      const res = await fetch(SCRIPT_URL);
+      const json = await res.json();
 
-                if (navigator.onLine) {
-                    try {
-                        await sendPayload(payload);
-                        alert('Laporan berhasil dikirim ke Google Sheets!');
-                        setTimeout(fetchReportsFromSheets, 1500);
-                    } catch (err) {
-                        alert('Koneksi terganggu. Laporan tersimpan di memori HP dan akan otomatis terkirim saat online.');
-                        let reports = JSON.parse(localStorage.getItem('reports')) || [];
-                        reports.unshift(reportEntry);
-                        localStorage.setItem('reports', JSON.stringify(reports));
-                    }
-                } else {
-                    alert('Mode Offline: Laporan tersimpan di perangkat. Akan terkirim otomatis saat internet terkoneksi.');
-                    let reports = JSON.parse(localStorage.getItem('reports')) || [];
-                    reports.unshift(reportEntry);
-                    localStorage.setItem('reports', JSON.stringify(reports));
-                }
+      if (json.result === 'success') {
+        allReports = json.data || [];
+        populatePetugasDropdown();
+        applyFilters();
+      } else {
+        container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: red;">Gagal memuat data laporan.</p>`;
+      }
+    } catch (err) {
+      let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      allReports = offlineData;
+      applyFilters(true);
+    }
+  }
 
-                document.getElementById('laporanForm').reset();
-                setDefaultDateTime();
-                document.getElementById('gps').value = '';
-                submitBtn.disabled = false;
-                submitBtn.innerText = 'Kirim Laporan';
-                displayReports();
-            } catch (err) {
-                alert('Gagal memproses foto: ' + err.message);
-                submitBtn.disabled = false;
-                submitBtn.innerText = 'Kirim Laporan';
-            }
-        });
+  function filterByJenis(jenis) {
+    if (activeJenisFilter === jenis) {
+      activeJenisFilter = ""; 
+    } else {
+      activeJenisFilter = jenis;
+    }
+    applyFilters();
+  }
 
-        function displayReports() {
-            const localReports = JSON.parse(localStorage.getItem('reports')) || [];
-            const pendingReports = localReports.filter(r => r.status === 'pending');
-            const cachedSynced = JSON.parse(localStorage.getItem('cached_synced_reports')) || [];
-            const reportList = document.getElementById('reportList');
-            
-            const allReports = [...pendingReports, ...cachedSynced];
-            
-            if (allReports.length === 0) {
-                reportList.innerHTML = '<p style="text-align:center; color:#888;">Belum ada laporan yang diinput.</p>';
-                return;
-            }
-            
-            reportList.innerHTML = allReports.map(r => `
-                <div class="card">
-                    <span class="${r.status === 'pending' ? 'badge-pending' : 'badge-synced'}">
-                        ${r.status === 'pending' ? '⏳ Pending (Offline)' : '✓ Tersinkron'}
-                    </span>
-                    <h4>${r.jenisKegiatan}</h4>
-                    <p><strong>Petugas:</strong> ${r.namaPetugas}</p>
-                    <p><strong>Waktu:</strong> ${r.waktuKegiatan}</p>
-                    <p><strong>Keterangan:</strong> ${r.keteranganKegiatan}</p>
-                    <p><strong>Lokasi:</strong> <a href="https://maps.google.com/?q=${r.gps}" target="_blank">📍 ${r.gps}</a></p>
-                    ${(r.fotoUrl || r.foto) ? `<img src="${r.fotoUrl || r.foto}" alt="Foto Kegiatan">` : ''}
-                </div>
-            `).join('');
-        }
+  function updateSummaryHighlights() {
+    document.querySelectorAll('.summary-card').forEach(card => card.classList.remove('active-card'));
+    
+    if (!activeJenisFilter) {
+      document.getElementById('card-All').classList.add('active-card');
+    } else if (activeJenisFilter === 'Uji Kelayakan') {
+      document.getElementById('card-UjiKelayakan').classList.add('active-card');
+    } else if (activeJenisFilter === 'Home Visit') {
+      document.getElementById('card-HomeVisit').classList.add('active-card');
+    } else if (activeJenisFilter === 'Sosialisasi') {
+      document.getElementById('card-Sosialisasi').classList.add('active-card');
+    } else if (activeJenisFilter === 'Kumpulan Pelayanan') {
+      document.getElementById('card-KumpulanPelayanan').classList.add('active-card');
+    } else if (activeJenisFilter === 'Door to door') {
+      document.getElementById('card-DoorToDoor').classList.add('active-card');
+    }
+  }
 
-        window.onload = function() {
-            setDefaultDateTime();
-            displayReports();
-            syncPendingReports();
-            fetchReportsFromSheets();
-        };
+  function applyFilters(isOffline = false) {
+    const selectedPetugas = document.getElementById("filterPetugas").value.toLowerCase();
+    const selectedTanggal = document.getElementById("filterTanggal").value;
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registered:', reg.scope))
-                    .catch(err => console.error('Service Worker registration failed:', err));
-            });
-        }
-    </script>
+    const baseFiltered = allReports.filter(item => {
+      const matchPetugas = !selectedPetugas || (item.namaPetugas && item.namaPetugas.toLowerCase().includes(selectedPetugas));
+      const matchTanggal = !selectedTanggal || (item.waktuKegiatan && item.waktuKegiatan.includes(selectedTanggal));
+      return matchPetugas && matchTanggal;
+    });
+
+    updateSummaryCounts(baseFiltered);
+
+    const finalFiltered = baseFiltered.filter(item => {
+      return !activeJenisFilter || ((item.jenisKegiatan || '').trim() === activeJenisFilter);
+    });
+
+    updateSummaryHighlights();
+    renderReports(finalFiltered, isOffline);
+  }
+
+  function updateSummaryCounts(reports) {
+    let totalKegiatan = reports.length;
+    let countUjiKelayakan = 0;
+    let totalPlafondNominal = 0;
+    let countHomeVisit = 0;
+    let countSosialisasi = 0;
+    let countKumpulanPelayanan = 0;
+    let countDoorToDoor = 0;
+
+    reports.forEach(r => {
+      const jenis = (r.jenisKegiatan || '').trim();
+      if (jenis === 'Uji Kelayakan') {
+        countUjiKelayakan++;
+        let valPlafond = parseFloat(r.plafond) || 0;
+        totalPlafondNominal += valPlafond;
+      } else if (jenis === 'Home Visit') {
+        countHomeVisit++;
+      } else if (jenis === 'Sosialisasi') {
+        countSosialisasi++;
+      } else if (jenis === 'Kumpulan Pelayanan') {
+        countKumpulanPelayanan++;
+      } else if (jenis === 'Door to door') {
+        countDoorToDoor++;
+      }
+    });
+
+    document.getElementById('sumTotalKegiatan').innerText = totalKegiatan;
+    document.getElementById('sumUjiKelayakan').innerText = countUjiKelayakan;
+    document.getElementById('sumTotalPlafond').innerText = formatRupiah(totalPlafondNominal);
+    document.getElementById('sumHomeVisit').innerText = countHomeVisit;
+    document.getElementById('sumSosialisasi').innerText = countSosialisasi;
+    document.getElementById('sumKumpulanPelayanan').innerText = countKumpulanPelayanan;
+    document.getElementById('sumDoorToDoor').innerText = countDoorToDoor;
+  }
+
+  function renderReports(reports, isOffline = false) {
+    const container = document.getElementById('reportContainer');
+    container.innerHTML = '';
+
+    if (!reports || reports.length === 0) {
+      container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9px; padding: 15px;">Belum ada laporan.</p>`;
+      return;
+    }
+
+    reports.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card-item';
+
+      const fotoHtml = item.fotoUrl 
+        ? `<img src="${item.fotoUrl}" class="img-preview" onclick="openModal('${item.fotoUrl}')" title="Klik memperbesar">`
+        : `<div style="height: 60px; background: #f1f5f9; border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 7.5px;">Tanpa Foto</div>`;
+
+      const plafondText = item.plafond && parseFloat(item.plafond) > 0 
+        ? `<div style="color: #dc2626; font-size: 7.5px; font-weight: 800;"><b>Plafond:</b> ${formatRupiah(item.plafond)}</div>` 
+        : '';
+
+      const gpsHtml = item.gps && item.gps.trim() !== '' 
+        ? `<div style="font-size: 7.5px; margin-top: 2px;">
+             <a href="https://www.google.com/maps?q=${encodeURIComponent(item.gps)}" target="_blank" rel="noopener noreferrer" style="color: var(--navy-blue); text-decoration: underline; font-weight: 800; display: inline-flex; align-items: center; gap: 2px;">
+               📍 Cek Maps
+             </a>
+           </div>` 
+        : '';
+
+      card.innerHTML = `
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+            <span class="card-title">${item.jenisKegiatan}</span>
+            <span class="${isOffline ? 'badge-pending' : 'badge-sync'}">${isOffline ? 'Off' : '✓'}</span>
+          </div>
+          <div style="color: var(--text-main); font-size: 8px; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><b>Petugas:</b> ${item.namaPetugas}</div>
+          <div style="color: var(--text-muted); font-size: 7.5px; margin-bottom: 1px;"><b>Waktu:</b> ${item.waktuKegiatan ? item.waktuKegiatan.substring(0,10) : ''}</div>
+          ${plafondText}
+          <div style="color: #334155; font-size: 7.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.15; margin-bottom: 1px;"><b>Ket:</b> ${item.keteranganKegiatan}</div>
+          ${gpsHtml}
+        </div>
+        ${fotoHtml}
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function populatePetugasDropdown() {
+    const select = document.getElementById("filterPetugas");
+    const currentVal = select.value;
+    const listPetugas = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansyah"];
+    
+    select.innerHTML = `<option value="">Semua Petugas</option>`;
+    listPetugas.forEach(p => {
+      select.innerHTML += `<option value="${p}">${p}</option>`;
+    });
+    select.value = currentVal;
+  }
+
+  function resetFilters() {
+    document.getElementById("filterPetugas").value = "";
+    document.getElementById("filterTanggal").value = "";
+    activeJenisFilter = "";
+    applyFilters();
+  }
+
+  function openModal(url) {
+    document.getElementById('modalImg').src = url;
+    document.getElementById('photoModal').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('photoModal').classList.remove('active');
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Registration failed:', err));
+  }
+</script>
+
 </body>
 </html>
