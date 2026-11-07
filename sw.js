@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dusel-monitoring-v5';
+const CACHE_NAME = 'dusel-monitoring-v6'; // <-- Versi dinaikkan agar HP mengunduh HTML terbaru
 const urlsToCache = [
   './',
   './index.html',
@@ -19,7 +19,7 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cache => {
           if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
+            return caches.delete(cache); // Menghapus cache versi lama
           }
         })
       );
