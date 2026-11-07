@@ -1,0 +1,21 @@
+{
+  "name": "Monitoring Lapangan DUSEL",
+  "short_name": "Report DUSEL",
+  "description": "Aplikasi Monitoring Kegiatan Lapangan Dusun Selatan",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#eef2f5",
+  "theme_color": "#007bff",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/007bff/ffffff?text=DUSEL",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/007bff/ffffff?text=DUSEL",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
