@@ -417,11 +417,11 @@
     } else if (tab === 'report') {
       btns[1].classList.add('active'); 
       document.getElementById('tab-report').classList.remove('hidden'); 
-      setTimeout(() => loadReports(false), 10);
+      setTimeout(() => triggerFilterReport(), 10);
     } else if (tab === 'analisa') {
       btns[2].classList.add('active'); 
       document.getElementById('tab-analisa').classList.remove('hidden'); 
-      setTimeout(() => loadReports(true), 10);
+      setTimeout(() => triggerRenderAnalisa(), 10);
     }
   }
 
@@ -636,7 +636,6 @@
     }
   }
 
-  // Mengambil data awal (default 150 data terbaru)
   async function fetchBackgroundData() {
     try {
       const res = await fetch(SCRIPT_URL + "?limit=150");
@@ -647,21 +646,6 @@
       localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
       localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
     } catch (err) {}
-  }
-
-  async function loadReports(fromAnalisa = false) {
-    if (allReports.length === 0) {
-      allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
-    }
-    if (Object.keys(onlineTargets).length === 0) {
-      onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '{}');
-    }
-
-    if(fromAnalisa) {
-      triggerRenderAnalisa();
-    } else {
-      triggerFilterReport();
-    }
   }
 
   function getDirectImageUrl(url) {
