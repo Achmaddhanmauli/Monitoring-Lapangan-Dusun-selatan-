@@ -384,8 +384,13 @@
     populatePetugasDropdown();
     updateOnlineStatus();
     
-    allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
-    onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '{}');
+    try {
+      allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
+      onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '{}');
+    } catch(e) {
+      localStorage.removeItem('cached_reports');
+      allReports = [];
+    }
 
     fetchBackgroundData();
   });
@@ -547,14 +552,12 @@
 
   function formatRupiah(number) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number); }
 
-  // Fungsi untuk merapikan format tanggal/waktu agar mudah dibaca di kartu riwayat
   function formatReadableDateTime(dateString) {
     if (!dateString) return "";
     try {
-      // Mengubah format seperti "2026-11-08T13:32:00.000Z" atau "2026-11-08 13:32" menjadi objek Date
       let cleanStr = dateString.replace(" ", "T");
       let d = new Date(cleanStr);
-      if (isNaN(d.getTime())) return dateString; // Jika gagal parsing, kembalikan teks aslinya
+      if (isNaN(d.getTime())) return dateString;
 
       let day = String(d.getDate()).padStart(2, '0');
       let months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
@@ -635,12 +638,12 @@
 
   async function fetchBackgroundData() {
     try {
-      const res = await fetch(SCRIPT_URL);
+      const res = await fetch(SCRIPT_URL + "?limit=150");
       const json = await res.json();
       allReports = json.data || [];
       onlineTargets = json.targets || {};
       
-      localStorage.setItem('cached_reports', JSON.stringify(allReports));
+      localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
       localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
     } catch (err) {}
   }
@@ -1051,7 +1054,6 @@
         gpsHtml = `<a href="https://www.google.com/maps?q=${item.gps}" target="_blank" class="map-link">📍 Buka Maps</a>`;
       }
 
-      // Format waktu yang sudah dirapikan menggunakan fungsi formatReadableDateTime
       let readableTime = formatReadableDateTime(item.waktuKegiatan);
 
       card.innerHTML = `
