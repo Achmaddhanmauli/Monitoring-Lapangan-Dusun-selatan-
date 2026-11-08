@@ -67,7 +67,7 @@
     .btn-submit { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--amartha-purple) 0%, var(--navy-blue) 50%, var(--turquoise-blue) 100%); color: white; border: none; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 800; letter-spacing: 0.4px; cursor: pointer; margin-top: 4px; box-shadow: 0 4px 12px rgba(74, 21, 75, 0.25); }
     .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
-    /* FILTER BOX & SUMMARY */
+    /* FILTER BOX & SUMMARY (GRID 4x2 UNTUK SEMUA JENIS KEGIATAN) */
     .filter-box { background: #f8fafc; border: 1px dashed var(--border-color); padding: 10px; border-radius: var(--radius-md); margin-bottom: 12px; }
     .filter-row { display: flex; gap: 6px; align-items: flex-end; }
     .filter-item { flex: 1; }
@@ -75,10 +75,10 @@
     .btn-reset { padding: 6px 10px; background: var(--navy-blue); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; font-weight: 600; height: 29px; }
 
     .summary-box { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 14px; }
-    .summary-card { background: #ffffff; border-radius: var(--radius-sm); padding: 6px 2px; border: 1.5px solid var(--border-color); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; user-select: none; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .summary-card { background: #ffffff; border-radius: var(--radius-sm); padding: 5px 2px; border: 1.5px solid var(--border-color); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; user-select: none; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); min-height: 42px; }
     .summary-card.active-card { border-color: var(--amartha-purple) !important; background: var(--accent-light) !important; box-shadow: 0 0 0 2px rgba(74, 21, 75, 0.2); }
-    .summary-card h4 { font-size: 6px; color: var(--navy-blue); text-transform: uppercase; font-weight: 800; letter-spacing: 0.1px; margin-bottom: 2px; text-align: center; }
-    .summary-card p { font-size: 11px; font-weight: 850; color: var(--amartha-purple); }
+    .summary-card h4 { font-size: 5.5px; color: var(--navy-blue); text-transform: uppercase; font-weight: 800; letter-spacing: 0.1px; margin-bottom: 1px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+    .summary-card p { font-size: 10px; font-weight: 850; color: var(--amartha-purple); }
 
     /* GRID LAPORAN */
     .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
@@ -114,7 +114,7 @@
 
     .hidden { display: none !important; }
     
-    /* ANIMASI LOADING UNTUK ANALISA */
+    /* ANIMASI LOADING */
     .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(74, 21, 75, 0.3); border-radius: 50%; border-top-color: var(--amartha-purple); animation: spin 1s ease-in-out infinite; margin-top: 20px;}
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
@@ -261,6 +261,7 @@
       </div>
     </div>
 
+    <!-- KOTAK RINGKASAN LENGKAP (SEMUA JENIS KEGIATAN) -->
     <div class="summary-box">
       <div class="summary-card active-card" id="card-All" onclick="filterByJenis('')">
         <h4>SEMUA</h4>
@@ -275,8 +276,20 @@
         <p id="sumHasilPenagihanPAR">0</p>
       </div>
       <div class="summary-card" id="card-HomeVisit" onclick="filterByJenis('Home Visit')">
-        <h4>H. VISIT</h4>
+        <h4>HOME VISIT</h4>
         <p id="sumHomeVisit">0</p>
+      </div>
+      <div class="summary-card" id="card-Sosialisasi" onclick="filterByJenis('Sosialisasi')">
+        <h4>SOSIALISASI</h4>
+        <p id="sumSosialisasi">0</p>
+      </div>
+      <div class="summary-card" id="card-KumpulanPelayanan" onclick="filterByJenis('Kumpulan Pelayanan')">
+        <h4>KUMPULAN</h4>
+        <p id="sumKumpulanPelayanan">0</p>
+      </div>
+      <div class="summary-card" id="card-Doortodoor" onclick="filterByJenis('Door to door')">
+        <h4>DOOR TO DOOR</h4>
+        <p id="sumDoortodoor">0</p>
       </div>
     </div>
 
@@ -343,6 +356,7 @@
 </div>
 
 <script>
+  // URL Deployment Apps Script Anda
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
   let allReports = [];
@@ -355,8 +369,17 @@
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
+    
+    // Set default filter Analisa ke hari ini (Harian) secara otomatis
+    const todayStr = now.toISOString().split('T')[0];
+    document.getElementById('analisaHarian').value = todayStr;
+
     populatePetugasDropdown();
     updateOnlineStatus();
+    
+    // BACKGROUND PRE-FETCHING: Ambil data diam-diam di belakang layar saat aplikasi dibuka
+    // Ini memastikan saat user pindah tab, data sudah siap dan tidak perlu loading lama
+    fetchBackgroundData();
   });
 
   window.addEventListener('online', () => { updateOnlineStatus(); syncOfflineReports(); });
@@ -368,18 +391,29 @@
     else { indicator.classList.remove('active'); }
   }
 
+  // OPTIMASI PERFORMA TAB: Menggunakan setTimeout agar UI Pindah Tab seketika (Anti-Lag)
   function switchTab(tab) {
     const btns = document.querySelectorAll('.tab-btn');
     const tabs = document.querySelectorAll('.tab-content');
+    
+    // 1. Eksekusi UI/Animasi terlebih dahulu tanpa hambatan
     btns.forEach(b => b.classList.remove('active'));
     tabs.forEach(t => t.classList.add('hidden'));
 
     if (tab === 'input') {
-      btns[0].classList.add('active'); document.getElementById('tab-input').classList.remove('hidden');
+      btns[0].classList.add('active'); 
+      document.getElementById('tab-input').classList.remove('hidden');
     } else if (tab === 'report') {
-      btns[1].classList.add('active'); document.getElementById('tab-report').classList.remove('hidden'); loadReports();
+      btns[1].classList.add('active'); 
+      document.getElementById('tab-report').classList.remove('hidden'); 
+      
+      // 2. Eksekusi Kalkulasi/Load Data secara tertunda agar layar tidak freeze
+      setTimeout(() => loadReports(false), 20);
     } else if (tab === 'analisa') {
-      btns[2].classList.add('active'); document.getElementById('tab-analisa').classList.remove('hidden'); loadReports(true);
+      btns[2].classList.add('active'); 
+      document.getElementById('tab-analisa').classList.remove('hidden'); 
+      
+      setTimeout(() => loadReports(true), 20);
     }
   }
 
@@ -426,10 +460,12 @@
     document.getElementById('kategoriMitra').required = false;
     document.getElementById('plafond').required = false;
 
-    if (jenis === 'Uji Kelayakan' || jenis === 'Hasil Penagihan PAR') {
+    // HANYA 3 JENIS KEGIATAN INI YANG BISA MODE UPLOAD GALERI
+    if (jenis === 'Uji Kelayakan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
       containerSwitch.classList.remove('hidden');
       lblDefault.classList.add('hidden');
     } else {
+      // Jika selain 3 di atas, hilangkan tombol upload, paksa ke Kamera Live
       containerSwitch.classList.add('hidden');
       lblDefault.classList.remove('hidden');
       
@@ -525,6 +561,7 @@
       document.getElementById('nominalPenagihanRaw').value = "0";
       document.getElementById('fileStatus').innerText = "Ambil Foto Kamera Belakang (Live)"; 
       toggleFormKegiatan();
+      fetchBackgroundData(); // Refresh data di background setelah submit
     } catch (err) {
       alert("Terjadi kesalahan: " + err.message);
     } finally {
@@ -546,16 +583,14 @@
     if (unSyncData.length === 0) {
       localStorage.removeItem('offline_reports');
       alert("Antrean offline berhasil disinkronisasi ke BPARS Database!");
+      fetchBackgroundData();
     } else {
       localStorage.setItem('offline_reports', JSON.stringify(unSyncData));
     }
-    loadReports();
   }
 
-  async function loadReports(fromAnalisa = false) {
-    const container = document.getElementById('reportContainer');
-    if(!fromAnalisa) container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9.5px; padding: 15px;">Memuat data...</p>`;
-
+  // FUNGSI PRE-FETCH DATA (Mencegah Lag Server)
+  async function fetchBackgroundData() {
     try {
       const res = await fetch(SCRIPT_URL);
       const json = await res.json();
@@ -564,12 +599,27 @@
       localStorage.setItem('cached_reports', JSON.stringify(allReports));
       localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
     } catch (err) {
+      // Gagal fetch, diam-diam gunakan cache lokal
+    }
+  }
+
+  async function loadReports(fromAnalisa = false) {
+    // Ambil dari memori (RAM) atau LocalStorage agar INSTAN
+    if (allReports.length === 0) {
       allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
       onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '[]');
     }
 
     let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
     let combinedReports = [...offlineData, ...allReports];
+
+    // Jika data masih benar-benar kosong (pertama kali buka), baru tunjukkan loading
+    if (combinedReports.length === 0) {
+       const container = document.getElementById('reportContainer');
+       if(!fromAnalisa) container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9.5px; padding: 15px;"><span class="loading-spinner" style="width:14px;height:14px;margin-top:0;"></span> Memuat data dari server...</p>`;
+       await fetchBackgroundData();
+       combinedReports = [...offlineData, ...allReports];
+    }
 
     if(fromAnalisa) {
       triggerRenderAnalisa(combinedReports);
@@ -578,24 +628,15 @@
     }
   }
 
-  // ==========================================
-  // PERBAIKAN FOTO (Menggunakan API Thumbnail Google)
-  // ==========================================
   function getDirectImageUrl(url) {
     if (!url) return "";
     let fileId = "";
-    
-    // Tangkap ID dari URL format lawas (/file/d/ID/...)
     if (url.includes("/file/d/")) {
       fileId = url.split("/file/d/")[1].split("/")[0];
-    } 
-    // Tangkap ID dari URL format baru (uc?id=ID atau uc?export=view&id=ID)
-    else if (url.includes("id=")) {
+    } else if (url.includes("id=")) {
       fileId = url.split("id=")[1].split("&")[0];
     }
-    
     if (fileId) {
-      // Mengubahnya menjadi thumbnail resmi Google (bebas blokir CORS di HP)
       return "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w800";
     }
     return url;
@@ -618,7 +659,9 @@
 
   function resetAnalisa() {
     document.getElementById('analisaPetugas').value = '';
-    document.getElementById('analisaHarian').value = '';
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('analisaHarian').value = now.toISOString().split('T')[0];
     document.getElementById('analisaMingguan').value = '';
     document.getElementById('analisaBulan').value = '';
     document.getElementById('analisaTahun').value = '';
@@ -644,16 +687,20 @@
         await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         alert("Target Berhasil Disimpan Online!");
       } else { alert("Butuh internet untuk menyimpan target."); }
-      loadReports(true);
+      fetchBackgroundData().then(() => loadReports(true)); // Refresh Analisa
     } catch(e) { alert("Error menyimpan target."); }
   }
 
+
+  // ==========================================
+  // LOGIKA ANTI-LAG & SKALABILITAS JANGKA PANJANG (50K+ Data)
+  // ==========================================
 
   function triggerRenderAnalisa(reportsData) {
     const dashboard = document.getElementById('analisaDashboard');
     dashboard.innerHTML = `<div style="text-align:center;"><div class="loading-spinner"></div><p style="font-size: 9px; color: var(--text-muted); margin-top: 8px;">Memproses Analisa...</p></div>`;
     
-    setTimeout(() => { requestAnimationFrame(() => { renderAnalisa(reportsData); }); }, 50);
+    setTimeout(() => { requestAnimationFrame(() => { renderAnalisa(reportsData); }); }, 30);
   }
 
   function triggerFilterReport(reportsData) {
@@ -679,10 +726,19 @@
     let labelPetugas = petugas ? petugas : "Semua Petugas (Keseluruhan Tim)";
 
     if (petugas) filtered = filtered.filter(r => r.namaPetugas && r.namaPetugas === petugas);
-    if (harian) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(harian)); tipeWaktu = "Harian"; nilaiWaktu = harian; labelPeriode = `Harian: ${harian}`; }
-    else if (mingguan) { filtered = filtered.filter(r => r.waktuKegiatan && getISOWeekString(new Date(r.waktuKegiatan)) === mingguan); tipeWaktu = "Mingguan"; nilaiWaktu = mingguan; labelPeriode = `Mingguan: ${mingguan}`; }
-    else if (bulanan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(bulanan)); tipeWaktu = "Bulanan"; nilaiWaktu = bulanan; labelPeriode = `Bulanan: ${bulanan}`; }
-    else if (tahunan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(tahunan)); tipeWaktu = "Tahunan"; nilaiWaktu = tahunan; labelPeriode = `Tahunan: ${tahunan}`; }
+    
+    // Default Analisa selalu ke Hari Ini jika semua kosong (safety fallback)
+    if (!harian && !mingguan && !bulanan && !tahunan) {
+        const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        document.getElementById('analisaHarian').value = todayStr;
+        filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(todayStr)); 
+        tipeWaktu = "Harian"; nilaiWaktu = todayStr; labelPeriode = `Harian: ${todayStr}`;
+    } else {
+        if (harian) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(harian)); tipeWaktu = "Harian"; nilaiWaktu = harian; labelPeriode = `Harian: ${harian}`; }
+        else if (mingguan) { filtered = filtered.filter(r => r.waktuKegiatan && getISOWeekString(new Date(r.waktuKegiatan)) === mingguan); tipeWaktu = "Mingguan"; nilaiWaktu = mingguan; labelPeriode = `Mingguan: ${mingguan}`; }
+        else if (bulanan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(bulanan)); tipeWaktu = "Bulanan"; nilaiWaktu = bulanan; labelPeriode = `Bulanan: ${bulanan}`; }
+        else if (tahunan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(tahunan)); tipeWaktu = "Tahunan"; nilaiWaktu = tahunan; labelPeriode = `Tahunan: ${tahunan}`; }
+    }
 
     let sumPlafond = 0; let countUji = 0;
     let capNTB = 0; let capETB = 0;
@@ -777,6 +833,12 @@
 
   function filterByJenis(jenis) {
     activeJenisFilter = (activeJenisFilter === jenis) ? "" : jenis;
+    // Update aktif card styling di summary box (Ke-7 kotak filter)
+    document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active-card'));
+    const targetCardId = jenis === '' ? 'card-All' : 'card-' + jenis.replace(/\s+/g, '');
+    const activeEl = document.getElementById(targetCardId);
+    if(activeEl) activeEl.classList.add('active-card');
+
     triggerFilterReport();
   }
 
@@ -800,27 +862,44 @@
   }
 
   function updateSummaryCounts(reports) {
-    let counts = { total: reports.length, uji: 0, tagihPAR: 0, home: 0 };
+    let counts = { total: reports.length, uji: 0, tagihPAR: 0, home: 0, sos: 0, kumpul: 0, door: 0 };
     reports.forEach(r => {
       const j = (r.jenisKegiatan || '').trim();
       if (j === 'Uji Kelayakan') counts.uji++;
       else if (j === 'Hasil Penagihan PAR') counts.tagihPAR++;
       else if (j === 'Home Visit') counts.home++;
+      else if (j === 'Sosialisasi') counts.sos++;
+      else if (j === 'Kumpulan Pelayanan') counts.kumpul++;
+      else if (j === 'Door to door') counts.door++;
     });
 
     document.getElementById('sumTotalKegiatan').innerText = counts.total;
     document.getElementById('sumUjiKelayakan').innerText = counts.uji;
     document.getElementById('sumHasilPenagihanPAR').innerText = counts.tagihPAR;
     document.getElementById('sumHomeVisit').innerText = counts.home;
+    document.getElementById('sumSosialisasi').innerText = counts.sos;
+    document.getElementById('sumKumpulanPelayanan').innerText = counts.kumpul;
+    document.getElementById('sumDoortodoor').innerText = counts.door;
   }
 
   function renderReports(reports) {
-    const container = document.getElementById('reportContainer'); container.innerHTML = '';
+    const container = document.getElementById('reportContainer'); 
+    container.innerHTML = '';
+    
     if (!reports || reports.length === 0) {
-      container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9px; padding: 15px;">Belum ada laporan.</p>`; return;
+      container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9px; padding: 15px;">Belum ada laporan.</p>`; 
+      return;
     }
 
-    reports.forEach(item => {
+    // TEKNIK ANTI-CRASH DOM (HANYA RENDER 50 DATA TERATAS)
+    // Walau DB ada puluhan ribu, aplikasi tetap ringan karena browser tidak hang merender ribuan gambar sekaligus.
+    const maxRender = 50; 
+    const renderList = reports.slice(0, maxRender);
+    
+    // Gunakan DocumentFragment untuk memanipulasi DOM dalam satu nafas (meningkatkan FPS layar HP)
+    const fragment = document.createDocumentFragment();
+
+    renderList.forEach(item => {
       const card = document.createElement('div'); card.className = 'card-item';
       
       let imgSrc = "";
@@ -830,9 +909,8 @@
         imgSrc = item.foto;
       }
 
-      // PERBAIKAN PADA FALLBACK GAMBAR: Jika gagal, tunjukkan box merah
       const fotoHtml = imgSrc 
-        ? `<img src="${imgSrc}" class="img-preview" onclick="openModal('${imgSrc}')" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: #fee2e2; border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
+        ? `<img src="${imgSrc}" class="img-preview" loading="lazy" onclick="openModal('${imgSrc}')" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: #fee2e2; border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
         : `<div style="height: 55px; background: #f1f5f9; border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 7.5px;">Tanpa Foto</div>`;
       
       const katMitra = item.kategoriMitra ? `<span style="color: var(--amartha-purple); font-weight:800;">(${item.kategoriMitra})</span>` : '';
@@ -856,8 +934,22 @@
         </div>
         ${fotoHtml}
       `;
-      container.appendChild(card);
+      fragment.appendChild(card);
     });
+
+    container.appendChild(fragment);
+
+    // Info tambahan jika data melebihi batas render agar user tahu datanya tidak hilang
+    if(reports.length > maxRender) {
+      const note = document.createElement('div');
+      note.style.gridColumn = "span 3";
+      note.style.textAlign = "center";
+      note.style.fontSize = "8px";
+      note.style.color = "var(--text-muted)";
+      note.style.padding = "8px";
+      note.innerText = `Menampilkan ${maxRender} data terbaru dari total ${reports.length} laporan untuk menjaga performa HP tetap lancar. Gunakan Filter Tanggal/Petugas untuk mencari data spesifik.`;
+      container.appendChild(note);
+    }
   }
 
   function populatePetugasDropdown() {
@@ -875,6 +967,8 @@
     document.getElementById("filterPetugas").value = ""; 
     document.getElementById("filterTanggal").value = ""; 
     activeJenisFilter = ""; 
+    document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active-card'));
+    document.getElementById('card-All').classList.add('active-card');
     triggerFilterReport();
   }
 
