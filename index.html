@@ -361,7 +361,6 @@
 </div>
 
 <script>
-  // URL Deployment Apps Script Anda
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
   let allReports = [];
@@ -375,12 +374,15 @@
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
     
-    // Set default filter Analisa ke hari ini (Harian) secara otomatis
     const todayStr = now.toISOString().split('T')[0];
     document.getElementById('analisaHarian').value = todayStr;
 
     populatePetugasDropdown();
     updateOnlineStatus();
+    
+    allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
+    onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '[]');
+
     fetchBackgroundData();
   });
 
@@ -406,11 +408,11 @@
     } else if (tab === 'report') {
       btns[1].classList.add('active'); 
       document.getElementById('tab-report').classList.remove('hidden'); 
-      setTimeout(() => loadReports(false), 20);
+      setTimeout(() => loadReports(false), 10);
     } else if (tab === 'analisa') {
       btns[2].classList.add('active'); 
       document.getElementById('tab-analisa').classList.remove('hidden'); 
-      setTimeout(() => loadReports(true), 20);
+      setTimeout(() => loadReports(true), 10);
     }
   }
 
@@ -456,7 +458,6 @@
     const btnToggle = document.getElementById('btnToggleCameraMode');
     const statusText = document.getElementById('fileStatus');
     
-    // Reset Hide
     containerPlafondKat.classList.add('hidden');
     wrapKategori.classList.add('hidden');
     wrapPlafond.classList.add('hidden');
@@ -466,22 +467,18 @@
     document.getElementById('kategoriMitra').required = false;
     document.getElementById('plafond').required = false;
 
-    // ATURAN UPLOAD FILE (HANYA 3 KEGIATAN INI)
     if (jenis === 'Uji Kelayakan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
       containerSwitch.classList.remove('hidden');
       lblDefault.classList.add('hidden');
     } else {
-      // SISA KEGIATAN LAINNYA WAJIB LIVE KAMERA
       containerSwitch.classList.add('hidden');
       lblDefault.classList.remove('hidden');
-      
       isLiveCameraMode = true;
       fileInput.setAttribute('capture', 'environment');
       btnToggle.innerText = "📁 Mode Upload File";
       statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
     }
 
-    // FORM FIELDS LOGIC
     if (jenis === 'Uji Kelayakan') {
       containerPlafondKat.classList.remove('hidden');
       containerPlafondKat.classList.add('form-grid-2');
@@ -490,7 +487,6 @@
       document.getElementById('kategoriMitra').required = true;
       document.getElementById('plafond').required = true;
     } else if (jenis === 'Akad Pencairan') {
-      // Akad Pencairan hanya butuh Plafond
       containerPlafondKat.classList.remove('hidden');
       wrapPlafond.classList.remove('hidden');
       document.getElementById('plafond').required = true;
@@ -625,10 +621,8 @@
     let combinedReports = [...offlineData, ...allReports];
 
     if (combinedReports.length === 0) {
-       const container = document.getElementById('reportContainer');
-       if(!fromAnalisa) container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9.5px; padding: 15px;"><span class="loading-spinner" style="width:14px;height:14px;margin-top:0;"></span> Memuat data dari server...</p>`;
        await fetchBackgroundData();
-       combinedReports = [...offlineData, ...allReports];
+       combinedReports = [...JSON.parse(localStorage.getItem('offline_reports') || '[]'), ...allReports];
     }
 
     if(fromAnalisa) {
@@ -706,7 +700,7 @@
     const dashboard = document.getElementById('analisaDashboard');
     dashboard.innerHTML = `<div style="text-align:center;"><div class="loading-spinner"></div><p style="font-size: 9px; color: var(--text-muted); margin-top: 8px;">Memproses Analisa...</p></div>`;
     
-    setTimeout(() => { requestAnimationFrame(() => { renderAnalisa(reportsData); }); }, 30);
+    setTimeout(() => { requestAnimationFrame(() => { renderAnalisa(reportsData); }); }, 20);
   }
 
   function renderAnalisa(reportsData) {
@@ -715,7 +709,7 @@
        reportsData = [...offlineData, ...allReports];
     }
     
-    const petugas = document.getElementById('analisaPetugas').value;
+    const petugas = document.getElementById('analisaPetugas').value.trim();
     const harian = document.getElementById('analisaHarian').value;
     const mingguan = document.getElementById('analisaMingguan').value;
     const bulanan = document.getElementById('analisaBulan').value;
@@ -727,7 +721,10 @@
     let nilaiWaktu = "Semua";
     let labelPetugas = petugas ? petugas : "Semua Petugas (Keseluruhan Tim)";
 
-    if (petugas) filtered = filtered.filter(r => r.namaPetugas && r.namaPetugas === petugas);
+    // FILTER PETUGAS KETAT (CASE INSENSITIVE & TRIM)
+    if (petugas) {
+      filtered = filtered.filter(r => r.namaPetugas && r.namaPetugas.trim().toLowerCase() === petugas.toLowerCase());
+    }
     
     if (!harian && !mingguan && !bulanan && !tahunan) {
         const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
@@ -741,9 +738,8 @@
         else if (tahunan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(tahunan)); tipeWaktu = "Tahunan"; nilaiWaktu = tahunan; labelPeriode = `Tahunan: ${tahunan}`; }
     }
 
-    let capNTB = 0; let capETB = 0; // Untuk Pencairan (Fix)
-    let sumProyeksiPlafond = 0; let countProyeksiUji = 0; let proyeksiNTB = 0; let proyeksiETB = 0; // Untuk Proyeksi (Uji Kelayakan)
-    
+    let capNTB = 0; let capETB = 0; 
+    let sumProyeksiPlafond = 0; let countProyeksiUji = 0; let proyeksiNTB = 0; let proyeksiETB = 0; 
     let totalNominalPenagihan = 0; let countPenagihan = 0;
     let countPencairan = 0;
 
@@ -755,24 +751,20 @@
       
       let p = parseFloat(r.plafond) || 0;
 
-      // Logika Uji Kelayakan (Hitung sebagai Proyeksi Potensi)
       if (jenis === 'Uji Kelayakan') {
         sumProyeksiPlafond += p;
         countProyeksiUji++;
         if (r.kategoriMitra === 'NTB') proyeksiNTB += p;
         if (r.kategoriMitra === 'ETB') {
           proyeksiETB += p;
-          // ETB otomatis dihitung sebagai Fix Pencairan
-          capETB += p;
+          capETB += p; 
           countPencairan++;
         }
       } 
-      // Logika Akad Pencairan (Hitung sebagai Fix Pencairan NTB)
       else if (jenis === 'Akad Pencairan') {
         capNTB += p;
         countPencairan++;
       } 
-      // Logika Penagihan PAR
       else if (jenis === 'Hasil Penagihan PAR') {
         totalNominalPenagihan += parseFloat(r.nominalPenagihan) || 0; 
         countPenagihan++;
@@ -782,18 +774,15 @@
     const dashboard = document.getElementById('analisaDashboard');
     let totalKegiatan = filtered.length;
 
-    // DEFAULT JUDUL: TOTAL DISBURSEMENT (PENCAIRAN) FIX
     let cardTitle = "TOTAL DISBURSEMENT (PENCAIRAN)";
     let cardValue = formatRupiah(capNTB + capETB);
     let cardSub = `${countPencairan} Data Pencairan (Akad NTB: ${formatRupiah(capNTB)} | ETB: ${formatRupiah(capETB)})`;
 
-    // JIKA USER KLIK KOTAK "UJI KELAYAKAN"
     if (selectedAnalisaJenis === 'Uji Kelayakan') {
       cardTitle = "TOTAL PROYEKSI DISBURSEMENT";
       cardValue = formatRupiah(sumProyeksiPlafond);
       cardSub = `${countProyeksiUji} Data Potensi (NTB: ${formatRupiah(proyeksiNTB)} | ETB: ${formatRupiah(proyeksiETB)})`;
     }
-    // JIKA USER KLIK KOTAK "HASIL PENAGIHAN PAR"
     else if (selectedAnalisaJenis === 'Hasil Penagihan PAR') {
       cardTitle = "TOTAL AMOUNT COLLECT (PENAGIHAN PAR)";
       cardValue = formatRupiah(totalNominalPenagihan);
@@ -868,16 +857,20 @@
     triggerFilterReport();
   }
 
+  function triggerFilterReport(reportsData) {
+    setTimeout(() => { requestAnimationFrame(() => { applyFilters(reportsData); }); }, 10);
+  }
+
   function applyFilters(reportsData) {
     if(!reportsData){
        let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
        reportsData = [...offlineData, ...allReports];
     }
-    const selectedPetugas = document.getElementById("filterPetugas").value.toLowerCase();
+    const selectedPetugas = document.getElementById("filterPetugas").value.trim().toLowerCase();
     const selectedTanggal = document.getElementById("filterTanggal").value;
 
     const baseFiltered = reportsData.filter(item => {
-      const matchPetugas = !selectedPetugas || (item.namaPetugas && item.namaPetugas.toLowerCase().includes(selectedPetugas));
+      const matchPetugas = !selectedPetugas || (item.namaPetugas && item.namaPetugas.trim().toLowerCase() === selectedPetugas);
       const matchTanggal = !selectedTanggal || (item.waktuKegiatan && item.waktuKegiatan.includes(selectedTanggal));
       return matchPetugas && matchTanggal;
     });
