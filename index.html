@@ -636,6 +636,7 @@
     }
   }
 
+  // Mengambil data awal (default 150 data terbaru)
   async function fetchBackgroundData() {
     try {
       const res = await fetch(SCRIPT_URL + "?limit=150");
@@ -656,18 +657,10 @@
       onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '{}');
     }
 
-    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-    let combinedReports = [...offlineData, ...allReports];
-
-    if (combinedReports.length === 0) {
-       await fetchBackgroundData();
-       combinedReports = [...JSON.parse(localStorage.getItem('offline_reports') || '[]'), ...allReports];
-    }
-
     if(fromAnalisa) {
-      triggerRenderAnalisa(combinedReports);
+      triggerRenderAnalisa();
     } else {
-      triggerFilterReport(combinedReports);
+      triggerFilterReport();
     }
   }
 
@@ -750,11 +743,33 @@
     triggerRenderAnalisa();
   }
 
-  function triggerRenderAnalisa(reportsData) {
+  // PENCARIAN SERVER KHUSUS TAB ANALISA
+  async function triggerRenderAnalisa() {
     const dashboard = document.getElementById('analisaDashboard');
     dashboard.innerHTML = `<div style="text-align:center;"><div class="loading-spinner"></div><p style="font-size: 9px; color: var(--text-muted); margin-top: 8px;">Memproses Analisa...</p></div>`;
-    
-    setTimeout(() => { requestAnimationFrame(() => { renderAnalisa(reportsData); }); }, 20);
+
+    const petugas = document.getElementById('analisaPetugas').value.trim();
+    const harian = document.getElementById('analisaHarian').value;
+    const bulanan = document.getElementById('analisaBulan').value;
+    const tahunan = document.getElementById('analisaTahun').value;
+
+    let filterTgl = harian || bulanan || tahunan || "";
+    let fetchUrl = `${SCRIPT_URL}?limit=500`;
+    if (petugas) fetchUrl += `&petugas=${encodeURIComponent(petugas)}`;
+    if (filterTgl) fetchUrl += `&tanggal=${encodeURIComponent(filterTgl)}`;
+
+    try {
+      const res = await fetch(fetchUrl);
+      const json = await res.json();
+      let fetchedData = json.data || [];
+      if (json.targets) onlineTargets = json.targets;
+
+      let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      renderAnalisa([...offlineData, ...fetchedData]);
+    } catch(e) {
+      let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      renderAnalisa([...offlineData, ...allReports]);
+    }
   }
 
   function renderAnalisa(reportsData) {
@@ -968,15 +983,33 @@
     triggerFilterReport();
   }
 
-  function triggerFilterReport(reportsData) {
-    setTimeout(() => { requestAnimationFrame(() => { applyFilters(reportsData); }); }, 10);
+  // PENCARIAN SERVER KHUSUS TAB RIWAYAT
+  async function triggerFilterReport() {
+    const container = document.getElementById('reportContainer');
+    container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9.5px; padding: 15px;">Mencari data di server...</p>`;
+
+    const selectedPetugas = document.getElementById("filterPetugas").value.trim();
+    const selectedTanggal = document.getElementById("filterTanggal").value;
+
+    let url = `${SCRIPT_URL}?limit=300`;
+    if (selectedPetugas) url += `&petugas=${encodeURIComponent(selectedPetugas)}`;
+    if (selectedTanggal) url += `&tanggal=${encodeURIComponent(selectedTanggal)}`;
+
+    try {
+      const res = await fetch(url);
+      const json = await res.json();
+      let serverData = json.data || [];
+      
+      let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      let combined = [...offlineData, ...serverData];
+      applyFilters(combined);
+    } catch (err) {
+      let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      applyFilters([...offlineData, ...allReports]);
+    }
   }
 
   function applyFilters(reportsData) {
-    if(!reportsData){
-       let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-       reportsData = [...offlineData, ...allReports];
-    }
     const selectedPetugas = document.getElementById("filterPetugas").value.trim().toLowerCase();
     const selectedTanggal = document.getElementById("filterTanggal").value;
 
