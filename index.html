@@ -125,7 +125,7 @@
   <div class="header">
     <div class="header-content">
       <h1>BRANCH PERFORMANCE ACTIVITY REPORTING SYSTEM</h1>
-      <p>Dusun Selatan - Created by : Zidan</p>
+      <p>BPARS Dashboard - Created by : Zidan</p>
     </div>
   </div>
 
@@ -490,7 +490,7 @@
       document.getElementById('kategoriMitra').required = true;
       document.getElementById('plafond').required = true;
     } else if (jenis === 'Akad Pencairan') {
-      // Akad Pencairan hanya butuh Plafond (NTB-nya sudah Fix)
+      // Akad Pencairan hanya butuh Plafond
       containerPlafondKat.classList.remove('hidden');
       wrapPlafond.classList.remove('hidden');
       document.getElementById('plafond').required = true;
@@ -709,10 +709,6 @@
     setTimeout(() => { requestAnimationFrame(() => { renderAnalisa(reportsData); }); }, 30);
   }
 
-  function triggerFilterReport(reportsData) {
-    setTimeout(() => { requestAnimationFrame(() => { applyFilters(reportsData); }); }, 10);
-  }
-
   function renderAnalisa(reportsData) {
     if (!reportsData) {
        let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
@@ -745,7 +741,9 @@
         else if (tahunan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(tahunan)); tipeWaktu = "Tahunan"; nilaiWaktu = tahunan; labelPeriode = `Tahunan: ${tahunan}`; }
     }
 
-    let capNTB = 0; let capETB = 0;
+    let capNTB = 0; let capETB = 0; // Untuk Pencairan (Fix)
+    let sumProyeksiPlafond = 0; let countProyeksiUji = 0; let proyeksiNTB = 0; let proyeksiETB = 0; // Untuk Proyeksi (Uji Kelayakan)
+    
     let totalNominalPenagihan = 0; let countPenagihan = 0;
     let countPencairan = 0;
 
@@ -755,14 +753,27 @@
       let jenis = (r.jenisKegiatan || '').trim();
       if (counts[jenis] !== undefined) counts[jenis]++;
       
-      // LOGIKA DISBURSEMENT (PENCAIRAN) TERBARU
-      if (jenis === 'Uji Kelayakan' && r.kategoriMitra === 'ETB') {
-        capETB += parseFloat(r.plafond) || 0;
+      let p = parseFloat(r.plafond) || 0;
+
+      // Logika Uji Kelayakan (Hitung sebagai Proyeksi Potensi)
+      if (jenis === 'Uji Kelayakan') {
+        sumProyeksiPlafond += p;
+        countProyeksiUji++;
+        if (r.kategoriMitra === 'NTB') proyeksiNTB += p;
+        if (r.kategoriMitra === 'ETB') {
+          proyeksiETB += p;
+          // ETB otomatis dihitung sebagai Fix Pencairan
+          capETB += p;
+          countPencairan++;
+        }
+      } 
+      // Logika Akad Pencairan (Hitung sebagai Fix Pencairan NTB)
+      else if (jenis === 'Akad Pencairan') {
+        capNTB += p;
         countPencairan++;
-      } else if (jenis === 'Akad Pencairan') {
-        capNTB += parseFloat(r.plafond) || 0;
-        countPencairan++;
-      } else if (jenis === 'Hasil Penagihan PAR') {
+      } 
+      // Logika Penagihan PAR
+      else if (jenis === 'Hasil Penagihan PAR') {
         totalNominalPenagihan += parseFloat(r.nominalPenagihan) || 0; 
         countPenagihan++;
       }
@@ -770,13 +781,20 @@
 
     const dashboard = document.getElementById('analisaDashboard');
     let totalKegiatan = filtered.length;
-    let sumPencairan = capNTB + capETB;
 
+    // DEFAULT JUDUL: TOTAL DISBURSEMENT (PENCAIRAN) FIX
     let cardTitle = "TOTAL DISBURSEMENT (PENCAIRAN)";
-    let cardValue = formatRupiah(sumPencairan);
+    let cardValue = formatRupiah(capNTB + capETB);
     let cardSub = `${countPencairan} Data Pencairan (Akad NTB: ${formatRupiah(capNTB)} | ETB: ${formatRupiah(capETB)})`;
 
-    if (selectedAnalisaJenis === 'Hasil Penagihan PAR') {
+    // JIKA USER KLIK KOTAK "UJI KELAYAKAN"
+    if (selectedAnalisaJenis === 'Uji Kelayakan') {
+      cardTitle = "TOTAL PROYEKSI DISBURSEMENT";
+      cardValue = formatRupiah(sumProyeksiPlafond);
+      cardSub = `${countProyeksiUji} Data Potensi (NTB: ${formatRupiah(proyeksiNTB)} | ETB: ${formatRupiah(proyeksiETB)})`;
+    }
+    // JIKA USER KLIK KOTAK "HASIL PENAGIHAN PAR"
+    else if (selectedAnalisaJenis === 'Hasil Penagihan PAR') {
       cardTitle = "TOTAL AMOUNT COLLECT (PENAGIHAN PAR)";
       cardValue = formatRupiah(totalNominalPenagihan);
       cardSub = `Dari total ${countPenagihan} kegiatan Penagihan PAR`;
@@ -792,7 +810,6 @@
       </div>
     `;
 
-    // 7 Jenis Kegiatan = 7 Warna
     const colors = ['#4a154b', '#e11d48', '#10b981', '#008cb4', '#0f4c81', '#f59e0b', '#64748b'];
     let colorIndex = 0;
 
