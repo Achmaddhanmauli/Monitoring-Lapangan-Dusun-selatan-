@@ -67,7 +67,7 @@
     .btn-submit { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--amartha-purple) 0%, var(--navy-blue) 50%, var(--turquoise-blue) 100%); color: white; border: none; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 800; letter-spacing: 0.4px; cursor: pointer; margin-top: 4px; box-shadow: 0 4px 12px rgba(74, 21, 75, 0.25); }
     .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
-    /* FILTER BOX & SUMMARY (GRID 4x2 UNTUK SEMUA JENIS KEGIATAN) */
+    /* FILTER BOX & SUMMARY (GRID 4x2) */
     .filter-box { background: #f8fafc; border: 1px dashed var(--border-color); padding: 10px; border-radius: var(--radius-md); margin-bottom: 12px; }
     .filter-row { display: flex; gap: 6px; align-items: flex-end; }
     .filter-item { flex: 1; }
@@ -125,7 +125,7 @@
   <div class="header">
     <div class="header-content">
       <h1>BRANCH PERFORMANCE ACTIVITY REPORTING SYSTEM</h1>
-      <p>Dusun Selatan - Created by : Zidan</p>
+      <p>BPARS Dashboard - Created by : Zidan</p>
     </div>
   </div>
 
@@ -158,6 +158,7 @@
           <select id="jenisKegiatan" class="form-control" onchange="toggleFormKegiatan()" required>
             <option value="">-- Pilih Kegiatan --</option>
             <option value="Uji Kelayakan">Uji Kelayakan</option>
+            <option value="Akad Pencairan">Akad Pencairan</option>
             <option value="Hasil Penagihan PAR">Hasil Penagihan PAR</option>
             <option value="Home Visit">Home Visit</option>
             <option value="Sosialisasi">Sosialisasi</option>
@@ -167,17 +168,17 @@
         </div>
       </div>
 
-      <!-- FORM UJI KELAYAKAN -->
-      <div id="groupUjiKelayakan" class="form-grid-2 hidden">
-        <div>
-          <label>Kategori Mitra</label>
+      <!-- FORM UJI KELAYAKAN & AKAD PENCAIRAN (PLAFOND) -->
+      <div id="containerPlafondKategori" class="hidden">
+        <div id="wrapperKategori" class="hidden form-group">
+          <label>Kategori Mitra (Hanya Uji Kelayakan)</label>
           <select id="kategoriMitra" class="form-control">
             <option value="">-- Pilih Kategori --</option>
             <option value="NTB">Mitra Baru (NTB)</option>
             <option value="ETB">Mitra Lanjutan (ETB)</option>
           </select>
         </div>
-        <div>
+        <div id="wrapperPlafond" class="hidden form-group">
           <label>Jumlah Plafond (Rp)</label>
           <select id="plafond" class="form-control">
             <option value="0">-- Pilih Nominal --</option>
@@ -261,7 +262,7 @@
       </div>
     </div>
 
-    <!-- KOTAK RINGKASAN LENGKAP (SEMUA JENIS KEGIATAN) -->
+    <!-- KOTAK RINGKASAN LENGKAP (8 KOTAK GRID 4x2) -->
     <div class="summary-box">
       <div class="summary-card active-card" id="card-All" onclick="filterByJenis('')">
         <h4>SEMUA</h4>
@@ -271,8 +272,12 @@
         <h4>UJI KEL.</h4>
         <p id="sumUjiKelayakan">0</p>
       </div>
+      <div class="summary-card" id="card-AkadPencairan" onclick="filterByJenis('Akad Pencairan')">
+        <h4>AKAD</h4>
+        <p id="sumAkadPencairan">0</p>
+      </div>
       <div class="summary-card" id="card-HasilPenagihanPAR" onclick="filterByJenis('Hasil Penagihan PAR')">
-        <h4>PENAGIHAN PAR</h4>
+        <h4>PENAGIHAN</h4>
         <p id="sumHasilPenagihanPAR">0</p>
       </div>
       <div class="summary-card" id="card-HomeVisit" onclick="filterByJenis('Home Visit')">
@@ -376,9 +381,6 @@
 
     populatePetugasDropdown();
     updateOnlineStatus();
-    
-    // BACKGROUND PRE-FETCHING: Ambil data diam-diam di belakang layar saat aplikasi dibuka
-    // Ini memastikan saat user pindah tab, data sudah siap dan tidak perlu loading lama
     fetchBackgroundData();
   });
 
@@ -391,12 +393,10 @@
     else { indicator.classList.remove('active'); }
   }
 
-  // OPTIMASI PERFORMA TAB: Menggunakan setTimeout agar UI Pindah Tab seketika (Anti-Lag)
   function switchTab(tab) {
     const btns = document.querySelectorAll('.tab-btn');
     const tabs = document.querySelectorAll('.tab-content');
     
-    // 1. Eksekusi UI/Animasi terlebih dahulu tanpa hambatan
     btns.forEach(b => b.classList.remove('active'));
     tabs.forEach(t => t.classList.add('hidden'));
 
@@ -406,13 +406,10 @@
     } else if (tab === 'report') {
       btns[1].classList.add('active'); 
       document.getElementById('tab-report').classList.remove('hidden'); 
-      
-      // 2. Eksekusi Kalkulasi/Load Data secara tertunda agar layar tidak freeze
       setTimeout(() => loadReports(false), 20);
     } else if (tab === 'analisa') {
       btns[2].classList.add('active'); 
       document.getElementById('tab-analisa').classList.remove('hidden'); 
-      
       setTimeout(() => loadReports(true), 20);
     }
   }
@@ -447,25 +444,34 @@
 
   function toggleFormKegiatan() {
     const jenis = document.getElementById('jenisKegiatan').value;
-    const groupUji = document.getElementById('groupUjiKelayakan');
+    
+    const containerPlafondKat = document.getElementById('containerPlafondKategori');
+    const wrapKategori = document.getElementById('wrapperKategori');
+    const wrapPlafond = document.getElementById('wrapperPlafond');
     const groupPenagihan = document.getElementById('groupHasilPenagihan');
+    
     const containerSwitch = document.getElementById('containerSwitchMode');
     const lblDefault = document.getElementById('lblDefaultCamera');
     const fileInput = document.getElementById('fotoKegiatan');
     const btnToggle = document.getElementById('btnToggleCameraMode');
     const statusText = document.getElementById('fileStatus');
     
-    groupUji.classList.add('hidden');
+    // Reset Hide
+    containerPlafondKat.classList.add('hidden');
+    wrapKategori.classList.add('hidden');
+    wrapPlafond.classList.add('hidden');
     groupPenagihan.classList.add('hidden');
+    containerPlafondKat.classList.remove('form-grid-2');
+    
     document.getElementById('kategoriMitra').required = false;
     document.getElementById('plafond').required = false;
 
-    // HANYA 3 JENIS KEGIATAN INI YANG BISA MODE UPLOAD GALERI
+    // ATURAN UPLOAD FILE (HANYA 3 KEGIATAN INI)
     if (jenis === 'Uji Kelayakan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
       containerSwitch.classList.remove('hidden');
       lblDefault.classList.add('hidden');
     } else {
-      // Jika selain 3 di atas, hilangkan tombol upload, paksa ke Kamera Live
+      // SISA KEGIATAN LAINNYA WAJIB LIVE KAMERA
       containerSwitch.classList.add('hidden');
       lblDefault.classList.remove('hidden');
       
@@ -475,9 +481,18 @@
       statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
     }
 
+    // FORM FIELDS LOGIC
     if (jenis === 'Uji Kelayakan') {
-      groupUji.classList.remove('hidden');
+      containerPlafondKat.classList.remove('hidden');
+      containerPlafondKat.classList.add('form-grid-2');
+      wrapKategori.classList.remove('hidden');
+      wrapPlafond.classList.remove('hidden');
       document.getElementById('kategoriMitra').required = true;
+      document.getElementById('plafond').required = true;
+    } else if (jenis === 'Akad Pencairan') {
+      // Akad Pencairan hanya butuh Plafond (NTB-nya sudah Fix)
+      containerPlafondKat.classList.remove('hidden');
+      wrapPlafond.classList.remove('hidden');
       document.getElementById('plafond').required = true;
     } else if (jenis === 'Hasil Penagihan PAR') {
       groupPenagihan.classList.remove('hidden');
@@ -561,7 +576,7 @@
       document.getElementById('nominalPenagihanRaw').value = "0";
       document.getElementById('fileStatus').innerText = "Ambil Foto Kamera Belakang (Live)"; 
       toggleFormKegiatan();
-      fetchBackgroundData(); // Refresh data di background setelah submit
+      fetchBackgroundData(); 
     } catch (err) {
       alert("Terjadi kesalahan: " + err.message);
     } finally {
@@ -589,7 +604,6 @@
     }
   }
 
-  // FUNGSI PRE-FETCH DATA (Mencegah Lag Server)
   async function fetchBackgroundData() {
     try {
       const res = await fetch(SCRIPT_URL);
@@ -598,13 +612,10 @@
       onlineTargets = json.targets || [];
       localStorage.setItem('cached_reports', JSON.stringify(allReports));
       localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
-    } catch (err) {
-      // Gagal fetch, diam-diam gunakan cache lokal
-    }
+    } catch (err) {}
   }
 
   async function loadReports(fromAnalisa = false) {
-    // Ambil dari memori (RAM) atau LocalStorage agar INSTAN
     if (allReports.length === 0) {
       allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
       onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '[]');
@@ -613,7 +624,6 @@
     let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
     let combinedReports = [...offlineData, ...allReports];
 
-    // Jika data masih benar-benar kosong (pertama kali buka), baru tunjukkan loading
     if (combinedReports.length === 0) {
        const container = document.getElementById('reportContainer');
        if(!fromAnalisa) container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9.5px; padding: 15px;"><span class="loading-spinner" style="width:14px;height:14px;margin-top:0;"></span> Memuat data dari server...</p>`;
@@ -687,14 +697,10 @@
         await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         alert("Target Berhasil Disimpan Online!");
       } else { alert("Butuh internet untuk menyimpan target."); }
-      fetchBackgroundData().then(() => loadReports(true)); // Refresh Analisa
+      fetchBackgroundData().then(() => loadReports(true)); 
     } catch(e) { alert("Error menyimpan target."); }
   }
 
-
-  // ==========================================
-  // LOGIKA ANTI-LAG & SKALABILITAS JANGKA PANJANG (50K+ Data)
-  // ==========================================
 
   function triggerRenderAnalisa(reportsData) {
     const dashboard = document.getElementById('analisaDashboard');
@@ -727,7 +733,6 @@
 
     if (petugas) filtered = filtered.filter(r => r.namaPetugas && r.namaPetugas === petugas);
     
-    // Default Analisa selalu ke Hari Ini jika semua kosong (safety fallback)
     if (!harian && !mingguan && !bulanan && !tahunan) {
         const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
         document.getElementById('analisaHarian').value = todayStr;
@@ -740,32 +745,36 @@
         else if (tahunan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(tahunan)); tipeWaktu = "Tahunan"; nilaiWaktu = tahunan; labelPeriode = `Tahunan: ${tahunan}`; }
     }
 
-    let sumPlafond = 0; let countUji = 0;
     let capNTB = 0; let capETB = 0;
     let totalNominalPenagihan = 0; let countPenagihan = 0;
+    let countPencairan = 0;
 
-    let counts = { 'Uji Kelayakan': 0, 'Hasil Penagihan PAR': 0, 'Home Visit': 0, 'Sosialisasi': 0, 'Kumpulan Pelayanan': 0, 'Door to door': 0 };
+    let counts = { 'Uji Kelayakan': 0, 'Akad Pencairan': 0, 'Hasil Penagihan PAR': 0, 'Home Visit': 0, 'Sosialisasi': 0, 'Kumpulan Pelayanan': 0, 'Door to door': 0 };
 
     filtered.forEach(r => {
       let jenis = (r.jenisKegiatan || '').trim();
       if (counts[jenis] !== undefined) counts[jenis]++;
-      if (jenis === 'Uji Kelayakan') {
-        let p = parseFloat(r.plafond) || 0;
-        sumPlafond += p; countUji++;
-        if (r.kategoriMitra === 'NTB') capNTB += p;
-        if (r.kategoriMitra === 'ETB') capETB += p;
+      
+      // LOGIKA DISBURSEMENT (PENCAIRAN) TERBARU
+      if (jenis === 'Uji Kelayakan' && r.kategoriMitra === 'ETB') {
+        capETB += parseFloat(r.plafond) || 0;
+        countPencairan++;
+      } else if (jenis === 'Akad Pencairan') {
+        capNTB += parseFloat(r.plafond) || 0;
+        countPencairan++;
       } else if (jenis === 'Hasil Penagihan PAR') {
-        let np = parseFloat(r.nominalPenagihan) || 0;
-        totalNominalPenagihan += np; countPenagihan++;
+        totalNominalPenagihan += parseFloat(r.nominalPenagihan) || 0; 
+        countPenagihan++;
       }
     });
 
     const dashboard = document.getElementById('analisaDashboard');
     let totalKegiatan = filtered.length;
+    let sumPencairan = capNTB + capETB;
 
-    let cardTitle = "TOTAL PLAFOND UJI KELAYAKAN";
-    let cardValue = formatRupiah(sumPlafond);
-    let cardSub = `${countUji} Data Pencairan (NTB: ${formatRupiah(capNTB)} | ETB: ${formatRupiah(capETB)})`;
+    let cardTitle = "TOTAL DISBURSEMENT (PENCAIRAN)";
+    let cardValue = formatRupiah(sumPencairan);
+    let cardSub = `${countPencairan} Data Pencairan (Akad NTB: ${formatRupiah(capNTB)} | ETB: ${formatRupiah(capETB)})`;
 
     if (selectedAnalisaJenis === 'Hasil Penagihan PAR') {
       cardTitle = "TOTAL AMOUNT COLLECT (PENAGIHAN PAR)";
@@ -783,7 +792,8 @@
       </div>
     `;
 
-    const colors = ['#4a154b', '#10b981', '#008cb4', '#0f4c81', '#f59e0b', '#64748b'];
+    // 7 Jenis Kegiatan = 7 Warna
+    const colors = ['#4a154b', '#e11d48', '#10b981', '#008cb4', '#0f4c81', '#f59e0b', '#64748b'];
     let colorIndex = 0;
 
     htmlContent += `<h4 style="font-size:11px; color:var(--navy-blue); margin-bottom:8px; margin-top:14px; text-transform:uppercase; font-weight:800;">KOMPOSISI KEGIATAN & TARGET KPI ONLINE</h4>`;
@@ -833,7 +843,6 @@
 
   function filterByJenis(jenis) {
     activeJenisFilter = (activeJenisFilter === jenis) ? "" : jenis;
-    // Update aktif card styling di summary box (Ke-7 kotak filter)
     document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active-card'));
     const targetCardId = jenis === '' ? 'card-All' : 'card-' + jenis.replace(/\s+/g, '');
     const activeEl = document.getElementById(targetCardId);
@@ -862,10 +871,11 @@
   }
 
   function updateSummaryCounts(reports) {
-    let counts = { total: reports.length, uji: 0, tagihPAR: 0, home: 0, sos: 0, kumpul: 0, door: 0 };
+    let counts = { total: reports.length, uji: 0, akad: 0, tagihPAR: 0, home: 0, sos: 0, kumpul: 0, door: 0 };
     reports.forEach(r => {
       const j = (r.jenisKegiatan || '').trim();
       if (j === 'Uji Kelayakan') counts.uji++;
+      else if (j === 'Akad Pencairan') counts.akad++;
       else if (j === 'Hasil Penagihan PAR') counts.tagihPAR++;
       else if (j === 'Home Visit') counts.home++;
       else if (j === 'Sosialisasi') counts.sos++;
@@ -875,6 +885,7 @@
 
     document.getElementById('sumTotalKegiatan').innerText = counts.total;
     document.getElementById('sumUjiKelayakan').innerText = counts.uji;
+    document.getElementById('sumAkadPencairan').innerText = counts.akad;
     document.getElementById('sumHasilPenagihanPAR').innerText = counts.tagihPAR;
     document.getElementById('sumHomeVisit').innerText = counts.home;
     document.getElementById('sumSosialisasi').innerText = counts.sos;
@@ -891,12 +902,8 @@
       return;
     }
 
-    // TEKNIK ANTI-CRASH DOM (HANYA RENDER 50 DATA TERATAS)
-    // Walau DB ada puluhan ribu, aplikasi tetap ringan karena browser tidak hang merender ribuan gambar sekaligus.
     const maxRender = 50; 
     const renderList = reports.slice(0, maxRender);
-    
-    // Gunakan DocumentFragment untuk memanipulasi DOM dalam satu nafas (meningkatkan FPS layar HP)
     const fragment = document.createDocumentFragment();
 
     renderList.forEach(item => {
@@ -915,7 +922,7 @@
       
       const katMitra = item.kategoriMitra ? `<span style="color: var(--amartha-purple); font-weight:800;">(${item.kategoriMitra})</span>` : '';
       let subValue = "";
-      if (item.jenisKegiatan === 'Uji Kelayakan' && parseFloat(item.plafond) > 0) {
+      if ((item.jenisKegiatan === 'Uji Kelayakan' || item.jenisKegiatan === 'Akad Pencairan') && parseFloat(item.plafond) > 0) {
         subValue = `<div style="color: #dc2626; font-size: 7.5px; font-weight: 800;"><b>Plafond:</b> ${formatRupiah(item.plafond)}</div>`;
       } else if (item.jenisKegiatan === 'Hasil Penagihan PAR' && parseFloat(item.nominalPenagihan) > 0) {
         subValue = `<div style="color: #10b981; font-size: 7.5px; font-weight: 800;"><b>Penagihan PAR:</b> ${formatRupiah(item.nominalPenagihan)}</div>`;
@@ -939,7 +946,6 @@
 
     container.appendChild(fragment);
 
-    // Info tambahan jika data melebihi batas render agar user tahu datanya tidak hilang
     if(reports.length > maxRender) {
       const note = document.createElement('div');
       note.style.gridColumn = "span 3";
