@@ -125,7 +125,7 @@
   <div class="header">
     <div class="header-content">
       <h1>BRANCH PERFORMANCE ACTIVITY REPORTING SYSTEM</h1>
-      <p>Dusun Selatan - Created by : Zidan</p>
+      <p> Dusun Selatan - Created by : Zidan</p>
     </div>
   </div>
 
@@ -376,7 +376,6 @@
     
     const todayStr = now.toISOString().split('T')[0];
     
-    // Set default filter tanggal ke hari ini secara otomatis pada tab Analisa & Riwayat
     document.getElementById('analisaHarian').value = todayStr;
     document.getElementById('filterTanggal').value = todayStr;
 
@@ -470,7 +469,8 @@
     document.getElementById('kategoriMitra').required = false;
     document.getElementById('plafond').required = false;
 
-    if (jenis === 'Uji Kelayakan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
+    // ATURAN UPLOAD FILE (DITAMBAHKAN AKAD PENCAIRAN)
+    if (jenis === 'Uji Kelayakan' || jenis === 'Akad Pencairan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
       containerSwitch.classList.remove('hidden');
       lblDefault.classList.add('hidden');
     } else {
