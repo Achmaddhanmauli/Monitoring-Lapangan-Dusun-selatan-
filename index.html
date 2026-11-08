@@ -343,7 +343,6 @@
 </div>
 
 <script>
-  // URL Deployment Apps Script Anda (Sesuai dengan Screenshot ID)
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
   let allReports = [];
@@ -579,11 +578,25 @@
     }
   }
 
+  // ==========================================
+  // PERBAIKAN FOTO (Menggunakan API Thumbnail Google)
+  // ==========================================
   function getDirectImageUrl(url) {
     if (!url) return "";
-    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    let fileId = "";
+    
+    // Tangkap ID dari URL format lawas (/file/d/ID/...)
+    if (url.includes("/file/d/")) {
+      fileId = url.split("/file/d/")[1].split("/")[0];
+    } 
+    // Tangkap ID dari URL format baru (uc?id=ID atau uc?export=view&id=ID)
+    else if (url.includes("id=")) {
+      fileId = url.split("id=")[1].split("&")[0];
+    }
+    
+    if (fileId) {
+      // Mengubahnya menjadi thumbnail resmi Google (bebas blokir CORS di HP)
+      return "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w800";
     }
     return url;
   }
@@ -636,27 +649,15 @@
   }
 
 
-  // ==========================================
-  // LOGIKA ANTI-LAG (Non-Blocking UI Rendering)
-  // ==========================================
-
   function triggerRenderAnalisa(reportsData) {
     const dashboard = document.getElementById('analisaDashboard');
     dashboard.innerHTML = `<div style="text-align:center;"><div class="loading-spinner"></div><p style="font-size: 9px; color: var(--text-muted); margin-top: 8px;">Memproses Analisa...</p></div>`;
     
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        renderAnalisa(reportsData);
-      });
-    }, 50);
+    setTimeout(() => { requestAnimationFrame(() => { renderAnalisa(reportsData); }); }, 50);
   }
 
   function triggerFilterReport(reportsData) {
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        applyFilters(reportsData);
-      });
-    }, 10);
+    setTimeout(() => { requestAnimationFrame(() => { applyFilters(reportsData); }); }, 10);
   }
 
   function renderAnalisa(reportsData) {
@@ -829,8 +830,9 @@
         imgSrc = item.foto;
       }
 
+      // PERBAIKAN PADA FALLBACK GAMBAR: Jika gagal, tunjukkan box merah
       const fotoHtml = imgSrc 
-        ? `<img src="${imgSrc}" class="img-preview" onclick="openModal('${imgSrc}')" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'60\\'><rect width=\\'100\\' height=\\'60\\' fill=\\'%23f1f5f9\\'/><text x=\\'50%\\' y=\\'50\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-size=\\'8\\' fill=\\'%23ef4444\\'>Gagal muat gambar</text></svg>'">`
+        ? `<img src="${imgSrc}" class="img-preview" onclick="openModal('${imgSrc}')" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: #fee2e2; border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
         : `<div style="height: 55px; background: #f1f5f9; border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 7.5px;">Tanpa Foto</div>`;
       
       const katMitra = item.kategoriMitra ? `<span style="color: var(--amartha-purple); font-weight:800;">(${item.kategoriMitra})</span>` : '';
