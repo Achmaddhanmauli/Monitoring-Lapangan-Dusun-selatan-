@@ -83,7 +83,7 @@
     /* GRID LAPORAN */
     .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
     .card-item { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 7px; font-size: 8.5px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex; flex-direction: column; justify-content: space-between; height: 100%; overflow: hidden; transition: all 0.2s ease; }
-    .card-title { font-weight: 850; color: var(--navy-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52px; }
+    .card-title { font-weight: 850; color: var(--navy-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
     .badge-sync { background: #dcfce7; color: #15803d; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
     .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid #f1f5f9; background: #f8fafc; }
     .map-link { display: inline-block; margin-top: 3px; font-size: 7.5px; font-weight: 700; color: var(--primary-blue); text-decoration: none; background: #e0f2fe; padding: 2px 5px; border-radius: 4px; }
@@ -546,6 +546,28 @@
   }
 
   function formatRupiah(number) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number); }
+
+  // Fungsi untuk merapikan format tanggal/waktu agar mudah dibaca di kartu riwayat
+  function formatReadableDateTime(dateString) {
+    if (!dateString) return "";
+    try {
+      // Mengubah format seperti "2026-11-08T13:32:00.000Z" atau "2026-11-08 13:32" menjadi objek Date
+      let cleanStr = dateString.replace(" ", "T");
+      let d = new Date(cleanStr);
+      if (isNaN(d.getTime())) return dateString; // Jika gagal parsing, kembalikan teks aslinya
+
+      let day = String(d.getDate()).padStart(2, '0');
+      let months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+      let month = months[d.getMonth()];
+      let year = d.getFullYear();
+      let hours = String(d.getHours()).padStart(2, '0');
+      let minutes = String(d.getMinutes()).padStart(2, '0');
+
+      return `${day} ${month} ${year}, ${hours}:${minutes}`;
+    } catch (e) {
+      return dateString;
+    }
+  }
 
   document.getElementById('reportForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1029,6 +1051,9 @@
         gpsHtml = `<a href="https://www.google.com/maps?q=${item.gps}" target="_blank" class="map-link">📍 Buka Maps</a>`;
       }
 
+      // Format waktu yang sudah dirapikan menggunakan fungsi formatReadableDateTime
+      let readableTime = formatReadableDateTime(item.waktuKegiatan);
+
       card.innerHTML = `
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
@@ -1036,7 +1061,7 @@
             <span class="badge-sync">✓</span>
           </div>
           <div style="color: var(--text-main); font-size: 8px; margin-bottom: 1px;"><b>Petugas:</b> ${item.namaPetugas}</div>
-          <div style="color: var(--text-muted); font-size: 7.5px; margin-bottom: 1px;"><b>Waktu:</b> ${item.waktuKegiatan || ''}</div>
+          <div style="color: var(--text-muted); font-size: 7.5px; margin-bottom: 1px;"><b>Waktu:</b> ${readableTime}</div>
           ${subValue}
           <div style="color: #334155; font-size: 7.5px; line-height: 1.15; margin-bottom: 2px;"><b>Ket:</b> ${item.keteranganKegiatan}</div>
           ${gpsHtml}
