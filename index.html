@@ -375,7 +375,10 @@
     document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
     
     const todayStr = now.toISOString().split('T')[0];
+    
+    // Set default filter tanggal ke hari ini secara otomatis pada tab Analisa & Riwayat
     document.getElementById('analisaHarian').value = todayStr;
+    document.getElementById('filterTanggal').value = todayStr;
 
     populatePetugasDropdown();
     updateOnlineStatus();
@@ -721,7 +724,6 @@
     let nilaiWaktu = "Semua";
     let labelPetugas = petugas ? petugas : "Semua Petugas (Keseluruhan Tim)";
 
-    // FILTER PETUGAS KETAT (CASE INSENSITIVE & TRIM)
     if (petugas) {
       filtered = filtered.filter(r => r.namaPetugas && r.namaPetugas.trim().toLowerCase() === petugas.toLowerCase());
     }
@@ -908,7 +910,7 @@
     container.innerHTML = '';
     
     if (!reports || reports.length === 0) {
-      container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9px; padding: 15px;">Belum ada laporan.</p>`; 
+      container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9px; padding: 15px;">Belum ada laporan pada tanggal ini.</p>`; 
       return;
     }
 
@@ -981,7 +983,9 @@
 
   function resetFilters() {
     document.getElementById("filterPetugas").value = ""; 
-    document.getElementById("filterTanggal").value = ""; 
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById("filterTanggal").value = now.toISOString().split('T')[0]; 
     activeJenisFilter = ""; 
     document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active-card'));
     document.getElementById('card-All').classList.add('active-card');
