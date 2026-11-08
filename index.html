@@ -86,6 +86,8 @@
     .card-title { font-weight: 850; color: var(--navy-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52px; }
     .badge-sync { background: #dcfce7; color: #15803d; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
     .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid #f1f5f9; background: #f8fafc; }
+    .map-link { display: inline-block; margin-top: 3px; font-size: 7.5px; font-weight: 700; color: var(--primary-blue); text-decoration: none; background: #e0f2fe; padding: 2px 5px; border-radius: 4px; }
+    .map-link:hover { background: #bae6fd; }
 
     /* MODAL POPUP */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.75); display: none; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(2px); }
@@ -125,7 +127,7 @@
   <div class="header">
     <div class="header-content">
       <h1>BRANCH PERFORMANCE ACTIVITY REPORTING SYSTEM</h1>
-      <p> Dusun Selatan - Created by : Zidan</p>
+      <p>Dusun Selatan - Created by : Zidan</p>
     </div>
   </div>
 
@@ -150,7 +152,7 @@
             <option value="Frengky">Frengky</option>
             <option value="Fatimah">Fatimah</option>
             <option value="Hikmah Aulia">Hikmah Aulia</option>
-            <option value="Ahmad Irpansyah">Ahmad Irpansyah</option>
+            <option value="Ahmad Irpansah">Ahmad Irpansah</option>
           </select>
         </div>
         <div>
@@ -469,7 +471,6 @@
     document.getElementById('kategoriMitra').required = false;
     document.getElementById('plafond').required = false;
 
-    // ATURAN UPLOAD FILE (DITAMBAHKAN AKAD PENCAIRAN)
     if (jenis === 'Uji Kelayakan' || jenis === 'Akad Pencairan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
       containerSwitch.classList.remove('hidden');
       lblDefault.classList.add('hidden');
@@ -940,6 +941,11 @@
         subValue = `<div style="color: #10b981; font-size: 7.5px; font-weight: 800;"><b>Penagihan PAR:</b> ${formatRupiah(item.nominalPenagihan)}</div>`;
       }
 
+      let gpsHtml = "";
+      if (item.gps) {
+        gpsHtml = `<a href="https://www.google.com/maps?q=${item.gps}" target="_blank" class="map-link">📍 Buka Maps</a>`;
+      }
+
       card.innerHTML = `
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
@@ -949,7 +955,8 @@
           <div style="color: var(--text-main); font-size: 8px; margin-bottom: 1px;"><b>Petugas:</b> ${item.namaPetugas}</div>
           <div style="color: var(--text-muted); font-size: 7.5px; margin-bottom: 1px;"><b>Waktu:</b> ${item.waktuKegiatan || ''}</div>
           ${subValue}
-          <div style="color: #334155; font-size: 7.5px; line-height: 1.15;"><b>Ket:</b> ${item.keteranganKegiatan}</div>
+          <div style="color: #334155; font-size: 7.5px; line-height: 1.15; margin-bottom: 2px;"><b>Ket:</b> ${item.keteranganKegiatan}</div>
+          ${gpsHtml}
         </div>
         ${fotoHtml}
       `;
@@ -971,7 +978,7 @@
   }
 
   function populatePetugasDropdown() {
-    const listPetugas = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansyah"];
+    const listPetugas = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
     const selectRiwayat = document.getElementById("filterPetugas");
     const selectAnalisa = document.getElementById("analisaPetugas");
 
