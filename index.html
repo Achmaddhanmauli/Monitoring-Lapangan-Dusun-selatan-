@@ -366,7 +366,7 @@
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
   let allReports = [];
-  let onlineTargets = [];
+  let localTargets = {};
   let activeJenisFilter = ""; 
   let selectedAnalisaJenis = "";
   let isLiveCameraMode = true;
@@ -385,7 +385,7 @@
     updateOnlineStatus();
     
     allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
-    onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '[]');
+    localTargets = JSON.parse(localStorage.getItem('local_targets_v4') || '{}');
 
     fetchBackgroundData();
   });
@@ -444,6 +444,13 @@
   function formatInputRupiah(input) {
     let value = input.value.replace(/[^0-9]/g, '');
     document.getElementById('nominalPenagihanRaw').value = value || "0";
+    if (value === "") { input.value = ""; return; }
+    input.value = "Rp " + new Intl.NumberFormat('id-ID').format(value);
+  }
+
+  function formatTargetRupiahInput(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    document.getElementById('targetUjiKelayakanRaw').value = value || "0";
     if (value === "") { input.value = ""; return; }
     input.value = "Rp " + new Intl.NumberFormat('id-ID').format(value);
   }
@@ -609,16 +616,13 @@
       const res = await fetch(SCRIPT_URL);
       const json = await res.json();
       allReports = json.data || [];
-      onlineTargets = json.targets || [];
       localStorage.setItem('cached_reports', JSON.stringify(allReports));
-      localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
     } catch (err) {}
   }
 
   async function loadReports(fromAnalisa = false) {
     if (allReports.length === 0) {
       allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
-      onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '[]');
     }
 
     let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
@@ -682,23 +686,22 @@
     triggerRenderAnalisa();
   }
 
-  async function simpanTargetOnline(key, labelPetugas, tipeWaktu, nilaiWaktu) {
-    const inputId = `inputTarget_${key.replace(/\s/g, '')}`;
-    const targetVal = parseInt(document.getElementById(inputId).value) || 0;
+  function simpanTargetLokal(key, labelPetugas, tipeWaktu, nilaiWaktu) {
+    const targetKey = `${labelPetugas}_${tipeWaktu}_${nilaiWaktu}_${key}`;
+    let targetVal = 0;
 
-    const payload = {
-      action: "set_target", petugas: labelPetugas, tipeWaktu: tipeWaktu, nilaiWaktu: nilaiWaktu, jenisKegiatan: key, targetVal: targetVal
-    };
+    if (key === 'Uji Kelayakan') {
+      targetVal = parseFloat(document.getElementById('targetUjiKelayakanRaw').value) || 0;
+    } else {
+      const inputId = `inputTarget_${key.replace(/\s/g, '')}`;
+      targetVal = parseInt(document.getElementById(inputId).value) || 0;
+    }
 
-    try {
-      if (navigator.onLine) {
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        alert("Target Berhasil Disimpan Online!");
-      } else { alert("Butuh internet untuk menyimpan target."); }
-      fetchBackgroundData().then(() => loadReports(true)); 
-    } catch(e) { alert("Error menyimpan target."); }
+    localTargets[targetKey] = targetVal;
+    localStorage.setItem('local_targets_v4', JSON.stringify(localTargets));
+    alert(`Target "${key}" untuk ${labelPetugas} (${tipeWaktu}: ${nilaiWaktu}) berhasil disimpan!`);
+    triggerRenderAnalisa();
   }
-
 
   function triggerRenderAnalisa(reportsData) {
     const dashboard = document.getElementById('analisaDashboard');
@@ -746,7 +749,15 @@
     let totalNominalPenagihan = 0; let countPenagihan = 0;
     let countPencairan = 0;
 
-    let counts = { 'Uji Kelayakan': 0, 'Akad Pencairan': 0, 'Hasil Penagihan PAR': 0, 'Home Visit': 0, 'Sosialisasi': 0, 'Kumpulan Pelayanan': 0, 'Door to door': 0 };
+    let counts = { 
+      'Uji Kelayakan': 0, 
+      'Akad Pencairan': 0, 
+      'Hasil Penagihan PAR': 0, 
+      'Home Visit': 0, 
+      'Sosialisasi': 0, 
+      'Kumpulan Pelayanan': 0, 
+      'Door to door': 0 
+    };
 
     filtered.forEach(r => {
       let jenis = (r.jenisKegiatan || '').trim();
@@ -775,7 +786,6 @@
     });
 
     const dashboard = document.getElementById('analisaDashboard');
-    let totalKegiatan = filtered.length;
 
     let cardTitle = "TOTAL DISBURSEMENT (PENCAIRAN)";
     let cardValue = formatRupiah(capNTB + capETB);
@@ -807,40 +817,91 @@
 
     htmlContent += `<h4 style="font-size:11px; color:var(--navy-blue); margin-bottom:8px; margin-top:14px; text-transform:uppercase; font-weight:800;">KOMPOSISI KEGIATAN & TARGET KPI ONLINE</h4>`;
 
+    const targetableActivities = ['Uji Kelayakan', 'Akad Pencairan', 'Hasil Penagihan PAR', 'Home Visit', 'Sosialisasi'];
+
     for (let key in counts) {
       let qty = counts[key];
-      let targetObj = onlineTargets.find(t => t.petugas === labelPetugas && t.tipeWaktu === tipeWaktu && t.nilaiWaktu === nilaiWaktu && t.jenisKegiatan === key);
-      let currentTarget = targetObj ? parseFloat(targetObj.targetVal) || 0 : 0;
-      let percentage = currentTarget > 0 ? Math.round((qty / currentTarget) * 100) : (totalKegiatan > 0 ? Math.round((qty / totalKegiatan) * 100) : 0);
+      let hasTarget = targetableActivities.includes(key);
+
+      let targetKey = `${labelPetugas}_${tipeWaktu}_${nilaiWaktu}_${key}`;
+      let currentTarget = hasTarget ? (localTargets[targetKey] || 0) : 0;
+      
+      let percentage = 0;
+      let countDisplay = `${qty} Giat`;
+      let setTargetUI = "";
       let isActiveClass = (selectedAnalisaJenis === key) ? 'active-stat' : '';
+
+      if (hasTarget) {
+        if (key === 'Uji Kelayakan') {
+          let capUji = sumProyeksiPlafond;
+          percentage = currentTarget > 0 ? Math.round((capUji / currentTarget) * 100) : 0;
+          if (currentTarget > 0) {
+            countDisplay = `${formatRupiah(capUji)} / Target ${formatRupiah(currentTarget)} (${percentage}%)`;
+          } else {
+            countDisplay = `${formatRupiah(capUji)} (Belum ada target Rp)`;
+          }
+        } else if (key === 'Hasil Penagihan PAR') {
+          let countMitraPenagihan = countPenagihan;
+          percentage = currentTarget > 0 ? Math.round((countMitraPenagihan / currentTarget) * 100) : 0;
+          if (currentTarget > 0) {
+            countDisplay = `${countMitraPenagihan} Mitra / Target ${currentTarget} Mitra (${percentage}%)`;
+          } else {
+            countDisplay = `${countPenagihan} Mitra (Belum ada target)`;
+          }
+        } else {
+          percentage = currentTarget > 0 ? Math.round((qty / currentTarget) * 100) : 0;
+          if (currentTarget > 0) {
+            countDisplay = `${qty} / Target ${currentTarget} Giat (${percentage}%)`;
+          } else {
+            countDisplay = `${qty} Giat (Belum ada target)`;
+          }
+        }
+
+        if (selectedAnalisaJenis === key) {
+          if (key === 'Uji Kelayakan') {
+            setTargetUI = `
+              <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
+                <span style="font-size: 9px; font-weight: 800; display:block; margin-bottom:4px;">Set Target Uji Kelayakan (Rp):</span>
+                <div style="display: flex; gap: 6px;">
+                  <input type="text" id="targetUjiKelayakanFormat" value="${currentTarget > 0 ? 'Rp ' + new Intl.NumberFormat('id-ID').format(currentTarget) : ''}" placeholder="Rp 0" oninput="formatTargetRupiahInput(this)"
+                         style="flex: 1; padding: 4px 6px; font-size: 10px; border: 1px solid var(--turquoise-blue); border-radius: 4px;">
+                  <input type="hidden" id="targetUjiKelayakanRaw" value="${currentTarget}">
+                  <button type="button" onclick="simpanTargetLokal('${key}', '${labelPetugas}', '${tipeWaktu}', '${nilaiWaktu}')" 
+                          style="padding: 4px 10px; font-size: 9.5px; background: var(--amartha-purple); color: white; border: none; border-radius: 4px; font-weight: 800;">Simpan</button>
+                </div>
+              </div>
+            `;
+          } else {
+            let labelInputTarget = (key === 'Hasil Penagihan PAR') ? 'Set Target Jumlah Mitra:' : 'Set Target Giat:';
+            setTargetUI = `
+              <div style="margin-top: 10px; display: flex; align-items: center; gap: 6px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
+                <span style="font-size: 9px; font-weight: 800;">${labelInputTarget}</span>
+                <input type="number" id="inputTarget_${key.replace(/\s/g, '')}" value="${currentTarget || ''}" placeholder="Jumlah"
+                       style="width: 80px; padding: 4px 6px; font-size: 10px; border: 1px solid var(--turquoise-blue); border-radius: 4px;">
+                <button type="button" onclick="simpanTargetLokal('${key}', '${labelPetugas}', '${tipeWaktu}', '${nilaiWaktu}')" 
+                        style="padding: 4px 10px; font-size: 9.5px; background: var(--amartha-purple); color: white; border: none; border-radius: 4px; font-weight: 800;">Simpan</button>
+              </div>
+            `;
+          }
+        }
+      }
 
       let extraInfo = "";
       if (key === 'Hasil Penagihan PAR' && totalNominalPenagihan > 0) {
         extraInfo = ` <span style="font-size:9px; color:#10b981; font-weight:bold;">[${formatRupiah(totalNominalPenagihan)}]</span>`;
       }
 
-      let setTargetUI = "";
-      if (selectedAnalisaJenis === key) {
-        setTargetUI = `
-          <div style="margin-top: 10px; display: flex; align-items: center; gap: 6px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
-            <span style="font-size: 9px; font-weight: 800;">Set Target Online:</span>
-            <input type="number" id="inputTarget_${key.replace(/\s/g, '')}" value="${currentTarget || ''}" placeholder="Target Giat"
-                   style="width: 80px; padding: 4px 6px; font-size: 10px; border: 1px solid var(--turquoise-blue); border-radius: 4px;">
-            <button type="button" onclick="simpanTargetOnline('${key}', '${labelPetugas}', '${tipeWaktu}', '${nilaiWaktu}')" 
-                    style="padding: 4px 10px; font-size: 9.5px; background: var(--amartha-purple); color: white; border: none; border-radius: 4px; font-weight: 800;">Simpan</button>
-          </div>
-        `;
-      }
-
       htmlContent += `
         <div class="stat-item ${isActiveClass}" onclick="if(event.target.tagName !== 'INPUT' && event.target.tagName !== 'BUTTON') toggleAnalisaJenis('${key}')">
           <div class="stat-header">
             <span class="stat-title">📋 ${key}${extraInfo}</span>
-            <span class="stat-count">${qty} Giat ${currentTarget > 0 ? '/ ' + currentTarget + ' (' + percentage + '%)' : ''}</span>
+            <span class="stat-count">${countDisplay}</span>
           </div>
-          <div class="stat-bar-container">
-            <div class="stat-bar-fill" style="width: ${Math.min(percentage, 100)}%; background: ${colors[colorIndex]};"></div>
-          </div>
+          ${hasTarget && currentTarget > 0 ? `
+            <div class="stat-bar-container">
+              <div class="stat-bar-fill" style="width: ${Math.min(percentage, 100)}%; background: ${colors[colorIndex]};"></div>
+            </div>
+          ` : ''}
           ${setTargetUI}
         </div>
       `;
