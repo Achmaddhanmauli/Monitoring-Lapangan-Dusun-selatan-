@@ -85,7 +85,7 @@
     .card-item { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 7px; font-size: 8.5px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex; flex-direction: column; justify-content: space-between; height: 100%; overflow: hidden; transition: all 0.2s ease; }
     .card-title { font-weight: 850; color: var(--navy-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52px; }
     .badge-sync { background: #dcfce7; color: #15803d; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
-    .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid #f1f5f9; }
+    .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid #f1f5f9; background: #f8fafc; }
 
     /* MODAL POPUP */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.75); display: none; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(2px); }
@@ -113,6 +113,10 @@
     .stat-bar-fill { height: 100%; background: linear-gradient(90deg, var(--amartha-purple), var(--turquoise-blue)); border-radius: 4px; width: 0%; transition: width 1s ease-in-out; }
 
     .hidden { display: none !important; }
+    
+    /* ANIMASI LOADING UNTUK ANALISA */
+    .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(74, 21, 75, 0.3); border-radius: 50%; border-top-color: var(--amartha-purple); animation: spin 1s ease-in-out infinite; margin-top: 20px;}
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -213,12 +217,11 @@
         <textarea id="keteranganKegiatan" class="form-control" placeholder="Jelaskan detail kegiatan..." required></textarea>
       </div>
 
-      <!-- FOTO KEGIATAN & SWITCH MODE (Hanya Aktif untuk Uji Kelayakan & Hasil Penagihan PAR) -->
+      <!-- FOTO KEGIATAN & SWITCH MODE -->
       <div id="containerSwitchMode" class="mode-switch-container hidden">
         <label style="font-size: 11px; font-weight: 700; color: var(--text-main);">Foto Kegiatan</label>
         <button type="button" id="btnToggleCameraMode" class="mode-switch-btn" onclick="toggleCameraMode()">📁 Mode Upload File</button>
       </div>
-      <!-- Label Default -->
       <label id="lblDefaultCamera" style="display: block; font-size: 11px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Foto Kegiatan (Wajib Kamera Live)</label>
       
       <div class="camera-box" onclick="triggerFileInput()">
@@ -246,13 +249,13 @@
       <div class="filter-row">
         <div class="filter-item">
           <label>Filter Petugas</label>
-          <select id="filterPetugas" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="applyFilters()">
+          <select id="filterPetugas" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="triggerFilterReport()">
             <option value="">Semua Petugas</option>
           </select>
         </div>
         <div class="filter-item">
           <label>Filter Tanggal</label>
-          <input type="date" id="filterTanggal" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="applyFilters()">
+          <input type="date" id="filterTanggal" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="triggerFilterReport()">
         </div>
         <button type="button" class="btn-reset" onclick="resetFilters()">Reset</button>
       </div>
@@ -289,7 +292,7 @@
     <div class="filter-box">
       <div class="form-group" style="margin-bottom: 10px;">
         <label style="color: var(--navy-blue);">Target Analisa Petugas</label>
-        <select id="analisaPetugas" class="form-control" style="padding: 6px; font-size: 10.5px;" onchange="renderAnalisa()">
+        <select id="analisaPetugas" class="form-control" style="padding: 6px; font-size: 10.5px;" onchange="triggerRenderAnalisa()">
           <option value="">Semua Petugas (Keseluruhan Tim)</option>
         </select>
       </div>
@@ -299,19 +302,19 @@
       <div class="form-grid-2" style="margin-bottom: 10px;">
         <div>
           <label style="font-size:9px; color:var(--text-muted); font-weight: 600;">Analisa Harian</label>
-          <input type="date" id="analisaHarian" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="clearOtherAnalisaTime('harian'); renderAnalisa()">
+          <input type="date" id="analisaHarian" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="clearOtherAnalisaTime('harian'); triggerRenderAnalisa()">
         </div>
         <div>
           <label style="font-size:9px; color:var(--text-muted); font-weight: 600;">Analisa Mingguan</label>
-          <input type="week" id="analisaMingguan" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="clearOtherAnalisaTime('mingguan'); renderAnalisa()">
+          <input type="week" id="analisaMingguan" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="clearOtherAnalisaTime('mingguan'); triggerRenderAnalisa()">
         </div>
         <div>
           <label style="font-size:9px; color:var(--text-muted); font-weight: 600;">Analisa Bulanan</label>
-          <input type="month" id="analisaBulan" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="clearOtherAnalisaTime('bulanan'); renderAnalisa()">
+          <input type="month" id="analisaBulan" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="clearOtherAnalisaTime('bulanan'); triggerRenderAnalisa()">
         </div>
         <div>
           <label style="font-size:9px; color:var(--text-muted); font-weight: 600;">Analisa Tahunan</label>
-          <select id="analisaTahun" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="clearOtherAnalisaTime('tahunan'); renderAnalisa()">
+          <select id="analisaTahun" class="form-control" style="padding: 4px 6px; font-size: 10px;" onchange="clearOtherAnalisaTime('tahunan'); triggerRenderAnalisa()">
             <option value="">Pilih Tahun...</option>
             <option value="2024">Tahun 2024</option>
             <option value="2025">Tahun 2025</option>
@@ -324,7 +327,9 @@
       <button type="button" class="btn-reset" style="width: 100%; height: 32px; font-size: 11px; background-color: var(--amartha-purple);" onclick="resetAnalisa()">Reset Filter Analisa</button>
     </div>
 
-    <div id="analisaDashboard"></div>
+    <div id="analisaDashboard">
+      <div style="text-align:center;"><div class="loading-spinner"></div><p style="font-size: 9px; color: var(--text-muted); margin-top: 8px;">Memproses Analisa...</p></div>
+    </div>
   </div>
 
 </div>
@@ -338,7 +343,7 @@
 </div>
 
 <script>
-  // KODE URL DEPLOYMENT ANDA OTOMATIS DIMASUKKAN DI SINI
+  // URL Deployment Apps Script Anda (Sesuai dengan Screenshot ID)
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
   let allReports = [];
@@ -422,7 +427,6 @@
     document.getElementById('kategoriMitra').required = false;
     document.getElementById('plafond').required = false;
 
-    // ATURAN KAMERA: Uji Kelayakan & Hasil Penagihan PAR (Bisa Upload/Live)
     if (jenis === 'Uji Kelayakan' || jenis === 'Hasil Penagihan PAR') {
       containerSwitch.classList.remove('hidden');
       lblDefault.classList.add('hidden');
@@ -430,7 +434,6 @@
       containerSwitch.classList.add('hidden');
       lblDefault.classList.remove('hidden');
       
-      // Paksa Live Camera
       isLiveCameraMode = true;
       fileInput.setAttribute('capture', 'environment');
       btnToggle.innerText = "📁 Mode Upload File";
@@ -569,7 +572,20 @@
     let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
     let combinedReports = [...offlineData, ...allReports];
 
-    if(fromAnalisa) renderAnalisa(combinedReports); else applyFilters(combinedReports);
+    if(fromAnalisa) {
+      triggerRenderAnalisa(combinedReports);
+    } else {
+      triggerFilterReport(combinedReports);
+    }
+  }
+
+  function getDirectImageUrl(url) {
+    if (!url) return "";
+    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    }
+    return url;
   }
 
   function getISOWeekString(date) {
@@ -594,12 +610,12 @@
     document.getElementById('analisaBulan').value = '';
     document.getElementById('analisaTahun').value = '';
     selectedAnalisaJenis = '';
-    loadReports(true);
+    triggerRenderAnalisa();
   }
 
   function toggleAnalisaJenis(key) {
     selectedAnalisaJenis = (selectedAnalisaJenis === key) ? '' : key;
-    loadReports(true);
+    triggerRenderAnalisa();
   }
 
   async function simpanTargetOnline(key, labelPetugas, tipeWaktu, nilaiWaktu) {
@@ -619,7 +635,36 @@
     } catch(e) { alert("Error menyimpan target."); }
   }
 
-  function renderAnalisa(reportsData = allReports) {
+
+  // ==========================================
+  // LOGIKA ANTI-LAG (Non-Blocking UI Rendering)
+  // ==========================================
+
+  function triggerRenderAnalisa(reportsData) {
+    const dashboard = document.getElementById('analisaDashboard');
+    dashboard.innerHTML = `<div style="text-align:center;"><div class="loading-spinner"></div><p style="font-size: 9px; color: var(--text-muted); margin-top: 8px;">Memproses Analisa...</p></div>`;
+    
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        renderAnalisa(reportsData);
+      });
+    }, 50);
+  }
+
+  function triggerFilterReport(reportsData) {
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        applyFilters(reportsData);
+      });
+    }, 10);
+  }
+
+  function renderAnalisa(reportsData) {
+    if (!reportsData) {
+       let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+       reportsData = [...offlineData, ...allReports];
+    }
+    
     const petugas = document.getElementById('analisaPetugas').value;
     const harian = document.getElementById('analisaHarian').value;
     const mingguan = document.getElementById('analisaMingguan').value;
@@ -731,10 +776,14 @@
 
   function filterByJenis(jenis) {
     activeJenisFilter = (activeJenisFilter === jenis) ? "" : jenis;
-    loadReports();
+    triggerFilterReport();
   }
 
-  function applyFilters(reportsData = allReports) {
+  function applyFilters(reportsData) {
+    if(!reportsData){
+       let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+       reportsData = [...offlineData, ...allReports];
+    }
     const selectedPetugas = document.getElementById("filterPetugas").value.toLowerCase();
     const selectedTanggal = document.getElementById("filterTanggal").value;
 
@@ -772,8 +821,16 @@
 
     reports.forEach(item => {
       const card = document.createElement('div'); card.className = 'card-item';
-      const fotoHtml = item.fotoUrl 
-        ? `<img src="${item.fotoUrl}" class="img-preview" onclick="openModal('${item.fotoUrl}')">`
+      
+      let imgSrc = "";
+      if (item.fotoUrl) {
+        imgSrc = getDirectImageUrl(item.fotoUrl);
+      } else if (item.foto) {
+        imgSrc = item.foto;
+      }
+
+      const fotoHtml = imgSrc 
+        ? `<img src="${imgSrc}" class="img-preview" onclick="openModal('${imgSrc}')" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'60\\'><rect width=\\'100\\' height=\\'60\\' fill=\\'%23f1f5f9\\'/><text x=\\'50%\\' y=\\'50\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-size=\\'8\\' fill=\\'%23ef4444\\'>Gagal muat gambar</text></svg>'">`
         : `<div style="height: 55px; background: #f1f5f9; border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 7.5px;">Tanpa Foto</div>`;
       
       const katMitra = item.kategoriMitra ? `<span style="color: var(--amartha-purple); font-weight:800;">(${item.kategoriMitra})</span>` : '';
@@ -816,7 +873,7 @@
     document.getElementById("filterPetugas").value = ""; 
     document.getElementById("filterTanggal").value = ""; 
     activeJenisFilter = ""; 
-    loadReports();
+    triggerFilterReport();
   }
 
   function openModal(url) { document.getElementById('modalImg').src = url; document.getElementById('photoModal').classList.add('active'); }
