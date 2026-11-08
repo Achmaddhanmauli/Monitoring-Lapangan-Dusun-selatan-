@@ -366,7 +366,7 @@
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
   let allReports = [];
-  let localTargets = {};
+  let onlineTargets = {};
   let activeJenisFilter = ""; 
   let selectedAnalisaJenis = "";
   let isLiveCameraMode = true;
@@ -385,7 +385,7 @@
     updateOnlineStatus();
     
     allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
-    localTargets = JSON.parse(localStorage.getItem('local_targets_v4') || '{}');
+    onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '{}');
 
     fetchBackgroundData();
   });
@@ -616,13 +616,19 @@
       const res = await fetch(SCRIPT_URL);
       const json = await res.json();
       allReports = json.data || [];
+      onlineTargets = json.targets || {};
+      
       localStorage.setItem('cached_reports', JSON.stringify(allReports));
+      localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
     } catch (err) {}
   }
 
   async function loadReports(fromAnalisa = false) {
     if (allReports.length === 0) {
       allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
+    }
+    if (Object.keys(onlineTargets).length === 0) {
+      onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '{}');
     }
 
     let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
@@ -686,7 +692,7 @@
     triggerRenderAnalisa();
   }
 
-  function simpanTargetLokal(key, labelPetugas, tipeWaktu, nilaiWaktu) {
+  async function simpanTargetLokal(key, labelPetugas, tipeWaktu, nilaiWaktu) {
     const targetKey = `${labelPetugas}_${tipeWaktu}_${nilaiWaktu}_${key}`;
     let targetVal = 0;
 
@@ -697,9 +703,25 @@
       targetVal = parseInt(document.getElementById(inputId).value) || 0;
     }
 
-    localTargets[targetKey] = targetVal;
-    localStorage.setItem('local_targets_v4', JSON.stringify(localTargets));
-    alert(`Target "${key}" untuk ${labelPetugas} (${tipeWaktu}: ${nilaiWaktu}) berhasil disimpan!`);
+    onlineTargets[targetKey] = targetVal;
+    localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: "save_target",
+          targetKey: targetKey,
+          targetVal: targetVal
+        })
+      });
+      alert(`Target "${key}" untuk ${labelPetugas} (${tipeWaktu}: ${nilaiWaktu}) berhasil disimpan secara online ke semua device!`);
+    } catch(err) {
+      alert("Target disimpan di perangkat, namun gagal mengirim ke server online.");
+    }
+
     triggerRenderAnalisa();
   }
 
@@ -824,7 +846,7 @@
       let hasTarget = targetableActivities.includes(key);
 
       let targetKey = `${labelPetugas}_${tipeWaktu}_${nilaiWaktu}_${key}`;
-      let currentTarget = hasTarget ? (localTargets[targetKey] || 0) : 0;
+      let currentTarget = hasTarget ? (onlineTargets[targetKey] || 0) : 0;
       
       let percentage = 0;
       let countDisplay = `${qty} Giat`;
