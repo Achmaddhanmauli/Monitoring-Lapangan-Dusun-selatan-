@@ -366,7 +366,7 @@
 </div>
 
 <script>
-  // URL Deployment Versi 20 Resmi
+  // URL Web App Deployment Versi 20
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
   let allReports = [];
@@ -380,10 +380,9 @@
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
     
-    const todayStr = now.toISOString().split('T')[0];
-    
-    document.getElementById('analisaHarian').value = todayStr;
-    document.getElementById('filterTanggal').value = todayStr;
+    // PENTING: Kosongkan filterTanggal saat pertama dibuka agar SEMUA data lama muncul
+    document.getElementById('filterTanggal').value = ''; 
+    document.getElementById('analisaHarian').value = '';
 
     populatePetugasDropdown();
     updateOnlineStatus();
@@ -709,7 +708,7 @@
 
   async function fetchBackgroundData() {
     try {
-      const res = await fetch(SCRIPT_URL + "?limit=150&_t=" + new Date().getTime());
+      const res = await fetch(SCRIPT_URL + "?limit=500&_t=" + new Date().getTime());
       const json = await res.json();
       allReports = json.data || [];
       onlineTargets = json.targets || {};
@@ -750,9 +749,7 @@
 
   function resetAnalisa() {
     document.getElementById('analisaPetugas').value = '';
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('analisaHarian').value = now.toISOString().split('T')[0];
+    document.getElementById('analisaHarian').value = '';
     document.getElementById('analisaMingguan').value = '';
     document.getElementById('analisaBulan').value = '';
     document.getElementById('analisaTahun').value = '';
@@ -805,10 +802,7 @@
     const bulanan = document.getElementById('analisaBulan').value;
     const tahunan = document.getElementById('analisaTahun').value;
 
-    let filterTgl = harian || bulanan || tahunan || "";
     let fetchUrl = `${SCRIPT_URL}?limit=500&_t=${new Date().getTime()}`;
-    if (petugas) fetchUrl += `&petugas=${encodeURIComponent(petugas)}`;
-    if (filterTgl) fetchUrl += `&tanggal=${encodeURIComponent(filterTgl)}`;
 
     try {
       const res = await fetch(fetchUrl);
@@ -846,17 +840,10 @@
       filtered = filtered.filter(r => r.namaPetugas && r.namaPetugas.trim().toLowerCase() === petugas.toLowerCase());
     }
     
-    if (!harian && !mingguan && !bulanan && !tahunan) {
-        const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
-        document.getElementById('analisaHarian').value = todayStr;
-        filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(todayStr)); 
-        tipeWaktu = "Harian"; nilaiWaktu = todayStr; labelPeriode = `Harian: ${todayStr}`;
-    } else {
-        if (harian) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(harian)); tipeWaktu = "Harian"; nilaiWaktu = harian; labelPeriode = `Harian: ${harian}`; }
-        else if (mingguan) { filtered = filtered.filter(r => r.waktuKegiatan && getISOWeekString(new Date(r.waktuKegiatan)) === mingguan); tipeWaktu = "Mingguan"; nilaiWaktu = mingguan; labelPeriode = `Mingguan: ${mingguan}`; }
-        else if (bulanan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(bulanan)); tipeWaktu = "Bulanan"; nilaiWaktu = bulanan; labelPeriode = `Bulanan: ${bulanan}`; }
-        else if (tahunan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.startsWith(tahunan)); tipeWaktu = "Tahunan"; nilaiWaktu = tahunan; labelPeriode = `Tahunan: ${tahunan}`; }
-    }
+    if (harian) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.includes(harian)); tipeWaktu = "Harian"; nilaiWaktu = harian; labelPeriode = `Harian: ${harian}`; }
+    else if (mingguan) { filtered = filtered.filter(r => r.waktuKegiatan && getISOWeekString(new Date(r.waktuKegiatan)) === mingguan); tipeWaktu = "Mingguan"; nilaiWaktu = mingguan; labelPeriode = `Mingguan: ${mingguan}`; }
+    else if (bulanan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.includes(bulanan)); tipeWaktu = "Bulanan"; nilaiWaktu = bulanan; labelPeriode = `Bulanan: ${bulanan}`; }
+    else if (tahunan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.includes(tahunan)); tipeWaktu = "Tahunan"; nilaiWaktu = tahunan; labelPeriode = `Tahunan: ${tahunan}`; }
 
     let capNTB = 0; let capETB = 0; 
     let sumProyeksiPlafond = 0; let countProyeksiUji = 0; let proyeksiNTB = 0; let proyeksiETB = 0; 
@@ -1039,12 +1026,7 @@
     const container = document.getElementById('reportContainer');
     container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9.5px; padding: 15px;">Mencari data di server...</p>`;
 
-    const selectedPetugas = document.getElementById("filterPetugas").value.trim();
-    const selectedTanggal = document.getElementById("filterTanggal").value;
-
-    let url = `${SCRIPT_URL}?limit=300&_t=${new Date().getTime()}`;
-    if (selectedPetugas) url += `&petugas=${encodeURIComponent(selectedPetugas)}`;
-    if (selectedTanggal) url += `&tanggal=${encodeURIComponent(selectedTanggal)}`;
+    let url = `${SCRIPT_URL}?limit=500&_t=${new Date().getTime()}`;
 
     try {
       const res = await fetch(url);
@@ -1063,22 +1045,19 @@
 
   function applyFilters(reportsData) {
     const selectedPetugas = document.getElementById("filterPetugas").value.trim().toLowerCase();
-    const selectedTanggal = document.getElementById("filterTanggal").value; // Format dari input date: "YYYY-MM-DD"
+    const selectedTanggal = document.getElementById("filterTanggal").value; // Format: "YYYY-MM-DD"
 
-    // Konversi "2026-11-09" menjadi "09/11/2026" untuk mencocokkan format tanggal slash pada Google Sheets
     let tanggalSlash = "";
     if (selectedTanggal) {
       const p = selectedTanggal.split("-");
       if (p.length === 3) {
-        tanggalSlash = `${p[2]}/${p[1]}/${p[0]}`; // Hasil: "09/11/2026"
+        tanggalSlash = `${p[2]}/${p[1]}/${p[0]}`; // "09/11/2026"
       }
     }
 
     const baseFiltered = reportsData.filter(item => {
-      // Filter Petugas
       const matchPetugas = !selectedPetugas || (item.namaPetugas && item.namaPetugas.trim().toLowerCase() === selectedPetugas);
       
-      // Filter Tanggal (Mendukung YYYY-MM-DD maupun DD/MM/YYYY)
       let matchTanggal = true;
       if (selectedTanggal) {
         const wGiat = String(item.waktuKegiatan || "");
@@ -1213,9 +1192,7 @@
 
   function resetFilters() {
     document.getElementById("filterPetugas").value = ""; 
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById("filterTanggal").value = now.toISOString().split('T')[0]; 
+    document.getElementById("filterTanggal").value = ""; 
     activeJenisFilter = ""; 
     document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active-card'));
     document.getElementById('card-All').classList.add('active-card');
