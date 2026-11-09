@@ -315,6 +315,7 @@
     <div class="filter-box">
       <div class="form-group" style="margin-bottom: 10px;">
         <label style="color: var(--navy-blue);">Target Analisa Petugas</label>
+        <!-- ZIDAN DIHILANGKAN DARI SINI KHUSUS UNTUK ANALISA STAF OPERASIONAL -->
         <select id="analisaPetugas" class="form-control" style="padding: 6px; font-size: 10.5px;" onchange="triggerRenderAnalisa()">
           <option value="">Semua Petugas (Keseluruhan Tim)</option>
         </select>
@@ -380,7 +381,7 @@
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
     
-    // PENTING: Kosongkan filterTanggal saat pertama dibuka agar SEMUA data lama muncul
+    // Kosongkan filter tanggal default agar seluruh riwayat lama langsung tampil
     document.getElementById('filterTanggal').value = ''; 
     document.getElementById('analisaHarian').value = '';
 
@@ -1045,13 +1046,13 @@
 
   function applyFilters(reportsData) {
     const selectedPetugas = document.getElementById("filterPetugas").value.trim().toLowerCase();
-    const selectedTanggal = document.getElementById("filterTanggal").value; // Format: "YYYY-MM-DD"
+    const selectedTanggal = document.getElementById("filterTanggal").value; 
 
     let tanggalSlash = "";
     if (selectedTanggal) {
       const p = selectedTanggal.split("-");
       if (p.length === 3) {
-        tanggalSlash = `${p[2]}/${p[1]}/${p[0]}`; // "09/11/2026"
+        tanggalSlash = `${p[2]}/${p[1]}/${p[0]}`; 
       }
     }
 
@@ -1177,15 +1178,20 @@
   }
 
   function populatePetugasDropdown() {
-    const listPetugas = ["Zidan", "Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
+    const listSemuaPetugas = ["Zidan", "Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
+    const listStafOperasional = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"]; // Zidan Dihilangkan khusus untuk Analisa
+    
     const selectRiwayat = document.getElementById("filterPetugas");
     const selectAnalisa = document.getElementById("analisaPetugas");
 
     selectRiwayat.innerHTML = `<option value="">Semua Petugas</option>`;
     selectAnalisa.innerHTML = `<option value="">Semua Petugas (Keseluruhan Tim)</option>`;
 
-    listPetugas.forEach(p => {
+    listSemuaPetugas.forEach(p => {
       selectRiwayat.innerHTML += `<option value="${p}">${p}</option>`;
+    });
+
+    listStafOperasional.forEach(p => {
       selectAnalisa.innerHTML += `<option value="${p}">${p}</option>`;
     });
   }
