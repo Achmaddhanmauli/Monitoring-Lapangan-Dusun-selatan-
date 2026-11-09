@@ -366,7 +366,7 @@
 </div>
 
 <script>
-  // URL Web App Deployment Versi 20
+  // URL Deployment Versi 20 Resmi
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
   let allReports = [];
@@ -709,7 +709,7 @@
 
   async function fetchBackgroundData() {
     try {
-      const res = await fetch(SCRIPT_URL + "?limit=150");
+      const res = await fetch(SCRIPT_URL + "?limit=150&_t=" + new Date().getTime());
       const json = await res.json();
       allReports = json.data || [];
       onlineTargets = json.targets || {};
@@ -806,7 +806,7 @@
     const tahunan = document.getElementById('analisaTahun').value;
 
     let filterTgl = harian || bulanan || tahunan || "";
-    let fetchUrl = `${SCRIPT_URL}?limit=500`;
+    let fetchUrl = `${SCRIPT_URL}?limit=500&_t=${new Date().getTime()}`;
     if (petugas) fetchUrl += `&petugas=${encodeURIComponent(petugas)}`;
     if (filterTgl) fetchUrl += `&tanggal=${encodeURIComponent(filterTgl)}`;
 
@@ -1042,12 +1042,13 @@
     const selectedPetugas = document.getElementById("filterPetugas").value.trim();
     const selectedTanggal = document.getElementById("filterTanggal").value;
 
-    let url = `${SCRIPT_URL}?limit=300`;
+    let url = `${SCRIPT_URL}?limit=300&_t=${new Date().getTime()}`;
     if (selectedPetugas) url += `&petugas=${encodeURIComponent(selectedPetugas)}`;
     if (selectedTanggal) url += `&tanggal=${encodeURIComponent(selectedTanggal)}`;
 
     try {
       const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP Status " + res.status);
       const json = await res.json();
       let serverData = json.data || [];
       
@@ -1062,11 +1063,33 @@
 
   function applyFilters(reportsData) {
     const selectedPetugas = document.getElementById("filterPetugas").value.trim().toLowerCase();
-    const selectedTanggal = document.getElementById("filterTanggal").value;
+    const selectedTanggal = document.getElementById("filterTanggal").value; // Format dari input date: "YYYY-MM-DD"
+
+    // Konversi "2026-11-09" menjadi "09/11/2026" untuk mencocokkan format tanggal slash pada Google Sheets
+    let tanggalSlash = "";
+    if (selectedTanggal) {
+      const p = selectedTanggal.split("-");
+      if (p.length === 3) {
+        tanggalSlash = `${p[2]}/${p[1]}/${p[0]}`; // Hasil: "09/11/2026"
+      }
+    }
 
     const baseFiltered = reportsData.filter(item => {
+      // Filter Petugas
       const matchPetugas = !selectedPetugas || (item.namaPetugas && item.namaPetugas.trim().toLowerCase() === selectedPetugas);
-      const matchTanggal = !selectedTanggal || (item.waktuKegiatan && item.waktuKegiatan.includes(selectedTanggal));
+      
+      // Filter Tanggal (Mendukung YYYY-MM-DD maupun DD/MM/YYYY)
+      let matchTanggal = true;
+      if (selectedTanggal) {
+        const wGiat = String(item.waktuKegiatan || "");
+        const tServer = String(item.timestampServer || "");
+        
+        const matchGiat = wGiat.includes(selectedTanggal) || (tanggalSlash && wGiat.includes(tanggalSlash));
+        const matchServer = tServer.includes(selectedTanggal) || (tanggalSlash && tServer.includes(tanggalSlash));
+        
+        matchTanggal = matchGiat || matchServer;
+      }
+
       return matchPetugas && matchTanggal;
     });
 
