@@ -1,26 +1,28 @@
-const CACHE_NAME = 'bpars-monitoring-v23';
-const ASSETS = [
+const CACHE_NAME = 'bpars-monitoring-v25';
+const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './manifest.json',
-  './sw.js'
+  './manifest.json'
 ];
 
+// 1. Install Service Worker & Cache App Shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+      return cache.addAll(ASSETS_TO_CACHE);
     }).then(() => self.skipWaiting())
   );
 });
 
+// 2. Activate & Hapus Cache Versi Lama (v24, v23, dst)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
+    caches.keys().then((cacheNames) => {
       return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('[Service Worker] Menghapus cache lama:', cache);
+            return caches.delete(cache);
           }
         })
       );
@@ -28,27 +30,29 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// 3. Fetch Handler (Stale-While-Revalidate untuk aset lokal, abaikan Google Apps Script API)
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  
+  // Jangan cache permintaan POST atau request ke Google Apps Script API
+  if (event.request.method !== 'GET' || event.request.url.includes('script.google.com')) {
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseClone = networkResponse.clone();
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
+            cache.put(event.request, responseToCache);
           });
         }
         return networkResponse;
-      })
-      .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) return cachedResponse;
-          if (event.request.mode === 'navigate') {
-            return caches.match('./index.html');
-          }
-        });
-      })
+      }).catch(() => {
+        // Mode offline fallback jika fetch gagal
+        return cachedResponse;
+      });
+
+      return cachedResponse || fetchPromise;
+    })
   );
 });
