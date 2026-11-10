@@ -39,7 +39,7 @@
 
     /* NAV TABS */
     .nav-tabs { display: flex; gap: 6px; margin-bottom: 14px; background: #e2e8f0; padding: 4px; border-radius: 12px; }
-    .tab-btn { flex: 1; padding: 10px 4px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; border-radius: 9px; cursor: pointer; font-size: 10.5px; transition: all 0.2s ease; }
+    .tab-btn { flex: 1; padding: 10px 4px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; border-radius: 99px; cursor: pointer; font-size: 10.5px; transition: all 0.2s ease; }
     .tab-btn.active { background: var(--amartha-purple); color: #ffffff; box-shadow: 0 3px 8px rgba(74, 21, 75, 0.3); }
 
     /* FORM STYLES */
@@ -103,6 +103,18 @@
     .analisa-card-main h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px;}
     .analisa-card-main p { font-size: 10px; opacity: 0.9; font-weight: 500; margin-bottom: 3px;}
     .analisa-badge { background: rgba(255,255,255,0.15); display: inline-block; padding: 6px 16px; border-radius: 20px; margin-top: 10px; font-size: 9.5px; font-weight:700; border: 1px solid rgba(255,255,255,0.2); }
+
+    /* GRAFIK TIM PER PETUGAS INLINE CARD */
+    .chart-container { margin-top: 14px; background: rgba(255, 255, 255, 0.12); border-radius: var(--radius-sm); padding: 12px 10px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.2); }
+    .chart-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; color: #ffffff; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.25); padding-bottom: 4px; }
+    .chart-row { margin-bottom: 8px; }
+    .chart-row:last-child { margin-bottom: 0; }
+    .chart-label-group { display: flex; justify-content: space-between; font-size: 9px; font-weight: 700; margin-bottom: 2px; }
+    .chart-officer-name { color: #ffffff; }
+    .chart-officer-val { color: #38bdf8; font-weight: 800; }
+    .chart-bar-bg { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.2); border-radius: 3px; overflow: hidden; }
+    .chart-bar-fill { height: 100%; background: linear-gradient(90deg, #38bdf8, #34d399); border-radius: 3px; transition: width 0.6s ease; }
+    .chart-sub-detail { font-size: 7.5px; opacity: 0.85; margin-top: 2px; color: #e2e8f0; }
 
     .stat-item { background: #ffffff; border: 1.5px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
     .stat-item:hover { border-color: var(--turquoise-blue); }
@@ -474,7 +486,6 @@
   }
 
   function triggerFileInput() {
-    // OTOMATIS TARIK GPS DI BACKGROUND SAAT MEMBUKA KAMERA / PILIH FILE
     getGPSLocation(true);
     document.getElementById('fotoKegiatan').click();
   }
@@ -549,7 +560,6 @@
     if (input.files && input.files[0]) {
       status.innerText = "✓ Foto Berhasil Dipilih!";
       status.style.color = "var(--primary-blue)";
-      // OTOMATIS TARIK GPS SAAT FOTO BERHASIL SELESAI DIPILIH
       getGPSLocation(true);
     }
   }
@@ -914,29 +924,69 @@
       'Door to door': 0 
     };
 
+    // INISIALISASI STRUKTUR STATISTIK PER PETUGAS (KHUSUS GRAFIK TIM)
+    const listStafOperasional = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
+    let petugasStats = {};
+    listStafOperasional.forEach(p => {
+      petugasStats[p] = {
+        disbursement: 0,
+        proyeksi: 0,
+        proyeksiNTB: 0,
+        proyeksiETB: 0,
+        penagihan: 0,
+        penagihanCount: 0,
+        akadNTB: 0,
+        akadETB: 0
+      };
+    });
+
     filtered.forEach(r => {
       let jenis = (r.jenisKegiatan || '').trim();
       if (counts[jenis] !== undefined) counts[jenis]++;
       
       let p = parseFloat(r.plafond) || 0;
+      let pName = (r.namaPetugas || '').trim();
+
+      if (pName && !petugasStats[pName]) {
+        petugasStats[pName] = { disbursement: 0, proyeksi: 0, proyeksiNTB: 0, proyeksiETB: 0, penagihan: 0, penagihanCount: 0, akadNTB: 0, akadETB: 0 };
+      }
 
       if (jenis === 'Uji Kelayakan') {
         sumProyeksiPlafond += p;
         countProyeksiUji++;
-        if (r.kategoriMitra === 'NTB') proyeksiNTB += p;
+        if (pName && petugasStats[pName]) petugasStats[pName].proyeksi += p;
+
+        if (r.kategoriMitra === 'NTB') {
+          proyeksiNTB += p;
+          if (pName && petugasStats[pName]) petugasStats[pName].proyeksiNTB += p;
+        }
         if (r.kategoriMitra === 'ETB') {
           proyeksiETB += p;
           capETB += p; 
           countPencairan++;
+          if (pName && petugasStats[pName]) {
+            petugasStats[pName].proyeksiETB += p;
+            petugasStats[pName].disbursement += p;
+            petugasStats[pName].akadETB += p;
+          }
         }
       } 
       else if (jenis === 'Akad Pencairan') {
         capNTB += p;
         countPencairan++;
+        if (pName && petugasStats[pName]) {
+          petugasStats[pName].disbursement += p;
+          petugasStats[pName].akadNTB += p;
+        }
       } 
       else if (jenis === 'Hasil Penagihan PAR') {
-        totalNominalPenagihan += parseFloat(r.nominalPenagihan) || 0; 
+        let penagihanVal = parseFloat(r.nominalPenagihan) || 0;
+        totalNominalPenagihan += penagihanVal; 
         countPenagihan++;
+        if (pName && petugasStats[pName]) {
+          petugasStats[pName].penagihan += penagihanVal;
+          petugasStats[pName].penagihanCount++;
+        }
       }
     });
 
@@ -957,6 +1007,53 @@
       cardSub = `Dari total ${countPenagihan} kegiatan Penagihan PAR`;
     }
 
+    // MEMBUAT ELEMENT GRAFIK TIM KHUSUS OPSI "SEMUA PETUGAS" (TANPA PERSENTASE)
+    let grafikPetugasHtml = "";
+    if (!petugas) {
+      let totalValueForChart = (selectedAnalisaJenis === 'Uji Kelayakan') ? sumProyeksiPlafond :
+                               (selectedAnalisaJenis === 'Hasil Penagihan PAR') ? totalNominalPenagihan :
+                               (capNTB + capETB);
+
+      grafikPetugasHtml += `
+        <div class="chart-container">
+          <div class="chart-title">📊 Rincian & Grafik Kontribusi Tim</div>
+      `;
+
+      listStafOperasional.forEach(pName => {
+        let st = petugasStats[pName] || { disbursement: 0, proyeksi: 0, proyeksiNTB: 0, proyeksiETB: 0, penagihan: 0, penagihanCount: 0, akadNTB: 0, akadETB: 0 };
+        let val = 0;
+        let subInfo = "";
+
+        if (selectedAnalisaJenis === 'Uji Kelayakan') {
+          val = st.proyeksi;
+          subInfo = `NTB: ${formatRupiah(st.proyeksiNTB)} | ETB: ${formatRupiah(st.proyeksiETB)}`;
+        } else if (selectedAnalisaJenis === 'Hasil Penagihan PAR') {
+          val = st.penagihan;
+          subInfo = `${st.penagihanCount} Kegiatan Penagihan`;
+        } else {
+          val = st.disbursement;
+          subInfo = `Akad NTB: ${formatRupiah(st.akadNTB)} | ETB (Uji): ${formatRupiah(st.akadETB)}`;
+        }
+
+        let pct = totalValueForChart > 0 ? Math.round((val / totalValueForChart) * 100) : 0;
+
+        grafikPetugasHtml += `
+          <div class="chart-row">
+            <div class="chart-label-group">
+              <span class="chart-officer-name">👤 ${pName}</span>
+              <span class="chart-officer-val">${formatRupiah(val)}</span>
+            </div>
+            <div class="chart-bar-bg">
+              <div class="chart-bar-fill" style="width: ${Math.min(pct, 100)}%;"></div>
+            </div>
+            <div class="chart-sub-detail">${subInfo}</div>
+          </div>
+        `;
+      });
+
+      grafikPetugasHtml += `</div>`;
+    }
+
     let htmlContent = `
       <div class="analisa-card-main">
         <h4>${cardTitle}</h4>
@@ -964,6 +1061,7 @@
         <p>Petugas: <b>${labelPetugas}</b></p>
         <p>Periode Waktu: <b>${labelPeriode}</b></p>
         <div class="analisa-badge">${cardSub}</div>
+        ${grafikPetugasHtml}
       </div>
     `;
 
