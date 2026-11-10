@@ -172,7 +172,6 @@
         </div>
       </div>
 
-      <!-- FORM UJI KELAYAKAN, UK VAL BM & AKAD PENCAIRAN (PLAFOND) -->
       <div id="containerPlafondKategori" class="hidden">
         <div id="wrapperKategori" class="hidden form-group">
           <label>Kategori Mitra</label>
@@ -205,7 +204,6 @@
         </div>
       </div>
 
-      <!-- FORM HASIL PENAGIHAN PAR -->
       <div id="groupHasilPenagihan" class="form-group hidden">
         <label>Nominal Uang Penagihan PAR (Rp)</label>
         <input type="text" id="nominalPenagihanFormat" class="form-control" placeholder="Rp 0" oninput="formatInputRupiah(this)">
@@ -222,7 +220,6 @@
         <textarea id="keteranganKegiatan" class="form-control" placeholder="Jelaskan detail kegiatan..." required></textarea>
       </div>
 
-      <!-- FOTO KEGIATAN & SWITCH MODE -->
       <div id="containerSwitchMode" class="mode-switch-container hidden">
         <label style="font-size: 11px; font-weight: 700; color: var(--text-main);">Foto Kegiatan</label>
         <button type="button" id="btnToggleCameraMode" class="mode-switch-btn" onclick="toggleCameraMode()">📁 Mode Upload File</button>
@@ -235,7 +232,7 @@
       </div>
       <input type="file" id="fotoKegiatan" class="hidden" accept="image/*" capture="environment" onchange="previewFileName(this)" required>
 
-      <button type="button" class="btn-gps" onclick="getGPSLocation()">
+      <button type="button" class="btn-gps" onclick="getGPSLocation(false)">
         <span style="color: #e11d48;">📍</span> Ambil Titik Lokasi GPS
       </button>
       <div class="form-group">
@@ -267,7 +264,6 @@
       </div>
     </div>
 
-    <!-- KOTAK RINGKASAN LENGKAP -->
     <div class="summary-box">
       <div class="summary-card active-card" id="card-All" onclick="filterByJenis('')">
         <h4>SEMUA</h4>
@@ -315,7 +311,6 @@
     <div class="filter-box">
       <div class="form-group" style="margin-bottom: 10px;">
         <label style="color: var(--navy-blue);">Target Analisa Petugas</label>
-        <!-- ZIDAN DIHILANGKAN DARI SINI KHUSUS UNTUK ANALISA STAF OPERASIONAL -->
         <select id="analisaPetugas" class="form-control" style="padding: 6px; font-size: 10.5px;" onchange="triggerRenderAnalisa()">
           <option value="">Semua Petugas (Keseluruhan Tim)</option>
         </select>
@@ -367,7 +362,6 @@
 </div>
 
 <script>
-  // URL Web App Deployment Versi 20
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
   let allReports = [];
@@ -376,14 +370,47 @@
   let selectedAnalisaJenis = "";
   let isLiveCameraMode = true;
 
+  function getTodayYYYYMMDD() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function extractYYYYMMDD(str) {
+    if (!str) return "";
+    str = String(str).trim();
+    
+    let matchISO = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (matchISO) {
+      return `${matchISO[1]}-${matchISO[2].padStart(2, '0')}-${matchISO[3].padStart(2, '0')}`;
+    }
+    
+    let matchIndo = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (matchIndo) {
+      return `${matchIndo[3]}-${matchIndo[2].padStart(2, '0')}-${matchIndo[1].padStart(2, '0')}`;
+    }
+
+    let dObj = new Date(str);
+    if (!isNaN(dObj.getTime())) {
+      let y = dObj.getFullYear();
+      let m = String(dObj.getMonth() + 1).padStart(2, '0');
+      let d = String(dObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    return "";
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
     
-    // Kosongkan filter tanggal default agar seluruh riwayat lama langsung tampil
-    document.getElementById('filterTanggal').value = ''; 
-    document.getElementById('analisaHarian').value = '';
+    const todayStr = getTodayYYYYMMDD();
+    document.getElementById('filterTanggal').value = todayStr; 
+    document.getElementById('analisaHarian').value = todayStr;
 
     populatePetugasDropdown();
     updateOnlineStatus();
@@ -447,6 +474,8 @@
   }
 
   function triggerFileInput() {
+    // OTOMATIS TARIK GPS DI BACKGROUND SAAT MEMBUKA KAMERA / PILIH FILE
+    getGPSLocation(true);
     document.getElementById('fotoKegiatan').click();
   }
 
@@ -520,12 +549,14 @@
     if (input.files && input.files[0]) {
       status.innerText = "✓ Foto Berhasil Dipilih!";
       status.style.color = "var(--primary-blue)";
+      // OTOMATIS TARIK GPS SAAT FOTO BERHASIL SELESAI DIPILIH
+      getGPSLocation(true);
     }
   }
 
-  function getGPSLocation() {
+  function getGPSLocation(isAuto = false) {
     if (!navigator.geolocation) {
-      alert("Perangkat Anda tidak mendukung fitur Geolocation.");
+      if (!isAuto) alert("Perangkat Anda tidak mendukung fitur Geolocation.");
       return;
     }
 
@@ -552,11 +583,13 @@
         const accuracyInput = document.getElementById('gpsAccuracy');
         if (accuracyInput) accuracyInput.value = accuracy;
 
-        alert(`📍 Lokasi Berhasil Dikunci!\nAkurasi Sensor HP: ±${accuracy} meter dari posisi presisi.`);
+        if (!isAuto) {
+          alert(`📍 Lokasi Berhasil Dikunci!\nAkurasi Sensor HP: ±${accuracy} meter dari posisi presisi.`);
+        }
 
         if (btnGps) {
           btnGps.disabled = false;
-          btnGps.innerHTML = `<span style="color: #e11d48;">📍</span> Ambil Titik Lokasi GPS`;
+          btnGps.innerHTML = `<span style="color: #10b981;">📍</span> GPS Terkunci Otomatis (±${accuracy}m)`;
         }
       },
       (err) => {
@@ -565,7 +598,7 @@
         else if (err.code === 2) errMsg = "Sinyal GPS tidak ditemukan. Pastikan Anda berada di area terbuka.";
         else if (err.code === 3) errMsg = "Waktu pengambilan GPS habis (Timeout). Coba lagi.";
         
-        alert(errMsg);
+        if (!isAuto) alert(errMsg);
 
         if (btnGps) {
           btnGps.disabled = false;
@@ -716,6 +749,9 @@
       
       localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
       localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
+      
+      triggerFilterReport();
+      triggerRenderAnalisa();
     } catch (err) {}
   }
 
@@ -796,27 +832,11 @@
 
   async function triggerRenderAnalisa() {
     const dashboard = document.getElementById('analisaDashboard');
-    dashboard.innerHTML = `<div style="text-align:center;"><div class="loading-spinner"></div><p style="font-size: 9px; color: var(--text-muted); margin-top: 8px;">Memproses Analisa...</p></div>`;
-
-    const petugas = document.getElementById('analisaPetugas').value.trim();
-    const harian = document.getElementById('analisaHarian').value;
-    const bulanan = document.getElementById('analisaBulan').value;
-    const tahunan = document.getElementById('analisaTahun').value;
-
-    let fetchUrl = `${SCRIPT_URL}?limit=500&_t=${new Date().getTime()}`;
-
-    try {
-      const res = await fetch(fetchUrl);
-      const json = await res.json();
-      let fetchedData = json.data || [];
-      if (json.targets) onlineTargets = json.targets;
-
-      let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-      renderAnalisa([...offlineData, ...fetchedData]);
-    } catch(e) {
-      let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-      renderAnalisa([...offlineData, ...allReports]);
-    }
+    if (!dashboard) return;
+    
+    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    let combinedData = [...offlineData, ...allReports];
+    renderAnalisa(combinedData);
   }
 
   function renderAnalisa(reportsData) {
@@ -841,10 +861,43 @@
       filtered = filtered.filter(r => r.namaPetugas && r.namaPetugas.trim().toLowerCase() === petugas.toLowerCase());
     }
     
-    if (harian) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.includes(harian)); tipeWaktu = "Harian"; nilaiWaktu = harian; labelPeriode = `Harian: ${harian}`; }
-    else if (mingguan) { filtered = filtered.filter(r => r.waktuKegiatan && getISOWeekString(new Date(r.waktuKegiatan)) === mingguan); tipeWaktu = "Mingguan"; nilaiWaktu = mingguan; labelPeriode = `Mingguan: ${mingguan}`; }
-    else if (bulanan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.includes(bulanan)); tipeWaktu = "Bulanan"; nilaiWaktu = bulanan; labelPeriode = `Bulanan: ${bulanan}`; }
-    else if (tahunan) { filtered = filtered.filter(r => r.waktuKegiatan && r.waktuKegiatan.includes(tahunan)); tipeWaktu = "Tahunan"; nilaiWaktu = tahunan; labelPeriode = `Tahunan: ${tahunan}`; }
+    if (harian) { 
+      filtered = filtered.filter(r => {
+        let dateGiat = extractYYYYMMDD(r.waktuKegiatan);
+        let dateServer = extractYYYYMMDD(r.timestampServer);
+        return (dateGiat === harian) || (dateServer === harian);
+      }); 
+      tipeWaktu = "Harian"; 
+      nilaiWaktu = harian; 
+      labelPeriode = `Harian: ${harian}`; 
+    }
+    else if (mingguan) { 
+      filtered = filtered.filter(r => {
+        let dateGiat = extractYYYYMMDD(r.waktuKegiatan);
+        return dateGiat && getISOWeekString(new Date(dateGiat)) === mingguan;
+      }); 
+      tipeWaktu = "Mingguan"; 
+      nilaiWaktu = mingguan; 
+      labelPeriode = `Mingguan: ${mingguan}`; 
+    }
+    else if (bulanan) { 
+      filtered = filtered.filter(r => {
+        let dateGiat = extractYYYYMMDD(r.waktuKegiatan);
+        return dateGiat && dateGiat.startsWith(bulanan);
+      }); 
+      tipeWaktu = "Bulanan"; 
+      nilaiWaktu = bulanan; 
+      labelPeriode = `Bulanan: ${bulanan}`; 
+    }
+    else if (tahunan) { 
+      filtered = filtered.filter(r => {
+        let dateGiat = extractYYYYMMDD(r.waktuKegiatan);
+        return dateGiat && dateGiat.startsWith(tahunan);
+      }); 
+      tipeWaktu = "Tahunan"; 
+      nilaiWaktu = tahunan; 
+      labelPeriode = `Tahunan: ${tahunan}`; 
+    }
 
     let capNTB = 0; let capETB = 0; 
     let sumProyeksiPlafond = 0; let countProyeksiUji = 0; let proyeksiNTB = 0; let proyeksiETB = 0; 
@@ -1024,50 +1077,23 @@
   }
 
   async function triggerFilterReport() {
-    const container = document.getElementById('reportContainer');
-    container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9.5px; padding: 15px;">Mencari data di server...</p>`;
-
-    let url = `${SCRIPT_URL}?limit=500&_t=${new Date().getTime()}`;
-
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("HTTP Status " + res.status);
-      const json = await res.json();
-      let serverData = json.data || [];
-      
-      let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-      let combined = [...offlineData, ...serverData];
-      applyFilters(combined);
-    } catch (err) {
-      let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-      applyFilters([...offlineData, ...allReports]);
-    }
+    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    let combined = [...offlineData, ...allReports];
+    applyFilters(combined);
   }
 
   function applyFilters(reportsData) {
     const selectedPetugas = document.getElementById("filterPetugas").value.trim().toLowerCase();
-    const selectedTanggal = document.getElementById("filterTanggal").value; 
-
-    let tanggalSlash = "";
-    if (selectedTanggal) {
-      const p = selectedTanggal.split("-");
-      if (p.length === 3) {
-        tanggalSlash = `${p[2]}/${p[1]}/${p[0]}`; 
-      }
-    }
+    const selectedTanggal = document.getElementById("filterTanggal").value;
 
     const baseFiltered = reportsData.filter(item => {
       const matchPetugas = !selectedPetugas || (item.namaPetugas && item.namaPetugas.trim().toLowerCase() === selectedPetugas);
       
       let matchTanggal = true;
       if (selectedTanggal) {
-        const wGiat = String(item.waktuKegiatan || "");
-        const tServer = String(item.timestampServer || "");
-        
-        const matchGiat = wGiat.includes(selectedTanggal) || (tanggalSlash && wGiat.includes(tanggalSlash));
-        const matchServer = tServer.includes(selectedTanggal) || (tanggalSlash && tServer.includes(tanggalSlash));
-        
-        matchTanggal = matchGiat || matchServer;
+        let dateGiat = extractYYYYMMDD(item.waktuKegiatan);
+        let dateServer = extractYYYYMMDD(item.timestampServer);
+        matchTanggal = (dateGiat === selectedTanggal) || (dateServer === selectedTanggal);
       }
 
       return matchPetugas && matchTanggal;
@@ -1179,7 +1205,7 @@
 
   function populatePetugasDropdown() {
     const listSemuaPetugas = ["Zidan", "Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
-    const listStafOperasional = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"]; // Zidan Dihilangkan khusus untuk Analisa
+    const listStafOperasional = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
     
     const selectRiwayat = document.getElementById("filterPetugas");
     const selectAnalisa = document.getElementById("analisaPetugas");
