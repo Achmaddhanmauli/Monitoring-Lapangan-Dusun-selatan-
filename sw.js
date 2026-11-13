@@ -1,11 +1,11 @@
-const CACHE_NAME = 'bpars-monitoring-v25';
+const CACHE_NAME = 'bpars-ai-v28';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json'
 ];
 
-// 1. Install Service Worker & Cache App Shell
+// 1. Install Service Worker & Cache Aset Utama
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -14,7 +14,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 2. Activate & Hapus Cache Versi Lama (v24, v23, dst)
+// 2. Aktifkan & Hapus Cache Versi Lama
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -32,7 +32,6 @@ self.addEventListener('activate', (event) => {
 
 // 3. Fetch Handler (Stale-While-Revalidate untuk aset lokal, abaikan Google Apps Script API)
 self.addEventListener('fetch', (event) => {
-  // Jangan cache permintaan POST atau request ke Google Apps Script API
   if (event.request.method !== 'GET' || event.request.url.includes('script.google.com')) {
     return;
   }
@@ -48,7 +47,6 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Mode offline fallback jika fetch gagal
         return cachedResponse;
       });
 
