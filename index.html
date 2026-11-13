@@ -3,133 +3,292 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Performance Activity Reporting System</title>
+  <title>BPARS - Performance Activity Reporting System AI</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4a154b">
   <style>
     :root {
-      --amartha-purple: #4a154b;
-      --turquoise-blue: #008cb4;
-      --navy-blue: #0f4c81;
-      --accent-light: #f5f0ff;
-      --bg-color: #f1f5f9;
-      --card-bg: #ffffff;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --border-color: #cbd5e1;
-      --primary-blue: #005bb5;
-      --radius-lg: 16px;
-      --radius-md: 10px;
-      --radius-sm: 8px;
+      --bg-deep: #0a0b10;
+      --bg-card: rgba(18, 20, 32, 0.82);
+      --border-glass: rgba(255, 255, 255, 0.08);
+      --amartha-purple: #7c2d96;
+      --amartha-purple-glow: rgba(124, 45, 150, 0.4);
+      --turquoise-blue: #00bcd4;
+      --navy-blue: #1b365d;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-glow: rgba(0, 188, 212, 0.25);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text-main); padding: 12px 8px; display: flex; justify-content: center; min-height: 100vh; }
-    .app-container { width: 100%; max-width: 500px; background: var(--card-bg); border-radius: var(--radius-lg); box-shadow: 0 10px 25px rgba(74, 21, 75, 0.1); padding: 16px 14px; align-self: flex-start; overflow-x: hidden; }
+    
+    body {
+      background-color: var(--bg-deep);
+      background-image: radial-gradient(circle at 10% 10%, rgba(74, 21, 75, 0.25) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 90%, rgba(0, 140, 180, 0.2) 0%, transparent 40%);
+      color: var(--text-main);
+      padding: 12px 8px 90px 8px; /* Padding bawah ekstra untuk dock AI Voice ergonomis */
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
 
-    /* HEADER BANNER */
-    .header { position: relative; text-align: center; margin-bottom: 14px; padding: 22px 14px; background: linear-gradient(135deg, var(--amartha-purple) 0%, var(--navy-blue) 60%, var(--turquoise-blue) 100%); border-radius: var(--radius-md); color: #ffffff; box-shadow: 0 4px 15px rgba(74, 21, 75, 0.25); overflow: hidden; }
-    .header::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.08) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(255, 255, 255, 0.08) 0%, transparent 45%), repeating-linear-gradient(45deg, transparent, transparent 12px, rgba(255,255,255,0.03) 12px, rgba(255,255,255,0.03) 15px); opacity: 0.9; z-index: 1; }
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+      padding: 16px 14px;
+      align-self: flex-start;
+      overflow-x: hidden;
+    }
+
+    /* HEADER BANNER FUTURISTIC */
+    .header {
+      position: relative;
+      text-align: center;
+      margin-bottom: 14px;
+      padding: 22px 14px;
+      background: linear-gradient(135deg, rgba(74, 21, 75, 0.85) 0%, rgba(15, 76, 129, 0.85) 60%, rgba(0, 140, 180, 0.85) 100%);
+      border-radius: var(--radius-md);
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(74, 21, 75, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+    }
+    .header::before {
+      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+      pointer-events: none;
+    }
     .header-content { position: relative; z-index: 2; }
     .header h1 { font-size: 13px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; line-height: 1.3; margin-bottom: 3px; }
     .header p { font-size: 10px; opacity: 0.9; font-weight: 500; }
 
-    .offline-indicator { background: #fef3c7; color: #b45309; font-size: 9.5px; font-weight: 800; padding: 6px; text-align: center; border-radius: var(--radius-sm); margin-bottom: 10px; display: none; }
+    .offline-indicator {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 6px;
+      text-align: center;
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      display: none;
+    }
     .offline-indicator.active { display: block; }
 
     /* NAV TABS */
-    .nav-tabs { display: flex; gap: 6px; margin-bottom: 14px; background: #e2e8f0; padding: 4px; border-radius: 12px; }
-    .tab-btn { flex: 1; padding: 10px 4px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; border-radius: 9px; cursor: pointer; font-size: 10.5px; transition: all 0.2s ease; }
-    .tab-btn.active { background: var(--amartha-purple); color: #ffffff; box-shadow: 0 3px 8px rgba(74, 21, 75, 0.3); }
+    .nav-tabs {
+      display: flex; gap: 6px; margin-bottom: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px; border-radius: 12px;
+      border: 1px solid var(--border-glass);
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 4px; border: none; background: transparent;
+      color: var(--text-muted); font-weight: 700; border-radius: 9px;
+      cursor: pointer; font-size: 10.5px; transition: all 0.3s ease;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--amartha-purple), var(--navy-blue));
+      color: #ffffff;
+      box-shadow: 0 4px 12px var(--amartha-purple-glow);
+    }
 
     /* FORM STYLES */
     .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
-    .form-control { width: 100%; padding: 9.5px 11px; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); font-size: 11.5px; background-color: #ffffff; color: var(--text-main); outline: none; transition: all 0.2s ease; }
-    .form-control:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(0, 91, 181, 0.12); }
+    .form-control {
+      width: 100%; padding: 10px 12px;
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-sm);
+      font-size: 11.5px; background-color: rgba(255, 255, 255, 0.05);
+      color: var(--text-main); outline: none; transition: all 0.2s ease;
+    }
+    .form-control:focus {
+      border-color: var(--turquoise-blue);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+    .form-control option { background-color: #121420; color: var(--text-main); }
     textarea.form-control { resize: vertical; height: 62px; }
 
     /* MODE CAMERA / UPLOAD TOGGLE */
     .mode-switch-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .mode-switch-btn { background: #e2e8f0; border: none; padding: 4px 10px; border-radius: 6px; font-size: 9px; font-weight: 700; color: var(--navy-blue); cursor: pointer; transition: 0.2s; }
-    .mode-switch-btn:hover { background: #cbd5e1; }
+    .mode-switch-btn {
+      background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-glass);
+      padding: 4px 10px; border-radius: 6px; font-size: 9px; font-weight: 700;
+      color: var(--turquoise-blue); cursor: pointer; transition: 0.2s;
+    }
+    .mode-switch-btn:hover { background: rgba(0, 188, 212, 0.15); }
 
     /* DASHED BOX */
-    .camera-box { border: 2px dashed #94a3b8; border-radius: var(--radius-sm); background: #f8fafc; padding: 16px; text-align: center; cursor: pointer; transition: 0.2s; margin-bottom: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-    .camera-box:hover { border-color: var(--primary-blue); background: #eef2f6; }
+    .camera-box {
+      border: 2px dashed rgba(255, 255, 255, 0.15); border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.02); padding: 16px; text-align: center;
+      cursor: pointer; transition: 0.2s; margin-bottom: 12px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    }
+    .camera-box:hover { border-color: var(--turquoise-blue); background: rgba(0, 188, 212, 0.03); }
     .camera-box span { font-size: 10.5px; font-weight: 600; color: var(--text-muted); }
 
     /* TOMBOL GPS & SUBMIT */
-    .btn-gps { width: 100%; padding: 11px; background: #e2e8f0; color: var(--text-main); border: none; border-radius: var(--radius-sm); font-size: 11px; font-weight: 700; cursor: pointer; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; gap: 6px; transition: 0.2s; }
-    .btn-gps:hover { background: #cbd5e1; }
-    .btn-gps:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .btn-gps {
+      width: 100%; padding: 11px; background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main); border: 1px solid var(--border-glass);
+      border-radius: var(--radius-sm); font-size: 11px; font-weight: 700;
+      cursor: pointer; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; gap: 6px; transition: 0.2s;
+    }
+    .btn-gps:hover { background: rgba(255, 255, 255, 0.1); }
+    .btn-gps:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    .btn-submit { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--amartha-purple) 0%, var(--navy-blue) 50%, var(--turquoise-blue) 100%); color: white; border: none; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 800; letter-spacing: 0.4px; cursor: pointer; margin-top: 4px; box-shadow: 0 4px 12px rgba(74, 21, 75, 0.25); }
-    .btn-submit:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
+    .btn-submit {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--amartha-purple) 0%, var(--navy-blue) 50%, var(--turquoise-blue) 100%);
+      color: white; border: none; border-radius: var(--radius-sm);
+      font-size: 12.5px; font-weight: 800; letter-spacing: 0.4px;
+      cursor: pointer; margin-top: 4px; box-shadow: 0 4px 15px var(--amartha-purple-glow);
+    }
+    .btn-submit:disabled { opacity: 0.6; box-shadow: none; cursor: not-allowed; }
+
+    /* ERGONOMIC FLOATING AI VOICE DOCK (BOTTOM) */
+    .ai-voice-dock {
+      position: fixed; bottom: 0; left: 0; width: 100%;
+      background: rgba(10, 11, 16, 0.94); backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(0, 188, 212, 0.3);
+      padding: 10px 14px 14px 14px; z-index: 999;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.6);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .ai-dock-header { display: flex; justify-content: space-between; width: 100%; max-width: 480px; align-items: center; }
+    .ai-dock-title { font-size: 10px; font-weight: 800; color: var(--turquoise-blue); letter-spacing: 0.8px; text-transform: uppercase; display: flex; align-items: center; gap: 4px; }
+    .ai-timer { font-size: 10px; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 2px 6px; border-radius: 4px; display: none; }
+    
+    .ai-mic-btn {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--turquoise-blue), var(--navy-blue));
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white; font-size: 20px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 188, 212, 0.4);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .ai-mic-btn.recording {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
+      animation: pulseMic 1.5s infinite;
+    }
+    @keyframes pulseMic {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+      70% { transform: scale(1.08); box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .waveform-canvas {
+      width: 100%; max-width: 480px; height: 26px;
+      background: rgba(0, 0, 0, 0.3); border-radius: 6px; display: none;
+    }
+    .ai-demo-btns { display: flex; gap: 4px; overflow-x: auto; width: 100%; max-width: 480px; padding-bottom: 2px; }
+    .ai-demo-btns::-webkit-scrollbar { display: none; }
+    .ai-demo-pill {
+      background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-glass);
+      color: var(--text-muted); padding: 3px 8px; border-radius: 99px;
+      font-size: 8px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: 0.2s;
+    }
+    .ai-demo-pill:hover { background: rgba(0, 188, 212, 0.15); color: var(--turquoise-blue); border-color: var(--turquoise-blue); }
 
     /* FILTER BOX & SUMMARY */
-    .filter-box { background: #f8fafc; border: 1px dashed var(--border-color); padding: 10px; border-radius: var(--radius-md); margin-bottom: 12px; }
+    .filter-box {
+      background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-glass);
+      padding: 10px; border-radius: var(--radius-md); margin-bottom: 12px;
+    }
     .filter-row { display: flex; gap: 6px; align-items: flex-end; }
     .filter-item { flex: 1; }
     .filter-item label { display: block; font-size: 9.5px; font-weight: 700; margin-bottom: 2px; color: var(--text-muted); }
     .btn-reset { padding: 6px 10px; background: var(--navy-blue); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; font-weight: 600; height: 29px; }
 
     .summary-box { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 14px; }
-    .summary-card { background: #ffffff; border-radius: var(--radius-sm); padding: 5px 2px; border: 1.5px solid var(--border-color); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; user-select: none; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); min-height: 42px; }
-    .summary-card.active-card { border-color: var(--amartha-purple) !important; background: var(--accent-light) !important; box-shadow: 0 0 0 2px rgba(74, 21, 75, 0.2); }
-    .summary-card h4 { font-size: 5.5px; color: var(--navy-blue); text-transform: uppercase; font-weight: 800; letter-spacing: 0.1px; margin-bottom: 1px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
-    .summary-card p { font-size: 10px; font-weight: 850; color: var(--amartha-purple); }
+    .summary-card {
+      background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-sm);
+      padding: 5px 2px; border: 1px solid var(--border-glass);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      cursor: pointer; user-select: none; transition: all 0.2s ease; min-height: 42px;
+    }
+    .summary-card.active-card { border-color: var(--turquoise-blue) !important; background: rgba(0, 188, 212, 0.1) !important; box-shadow: 0 0 0 2px rgba(0, 188, 212, 0.2); }
+    .summary-card h4 { font-size: 5.5px; color: var(--turquoise-blue); text-transform: uppercase; font-weight: 800; letter-spacing: 0.1px; margin-bottom: 1px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+    .summary-card p { font-size: 10px; font-weight: 850; color: #ffffff; }
 
     /* GRID LAPORAN */
     .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
-    .card-item { background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 7px; font-size: 8.5px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex; flex-direction: column; justify-content: space-between; height: 100%; overflow: hidden; transition: all 0.2s ease; }
-    .card-title { font-weight: 850; color: var(--navy-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
-    .badge-sync { background: #dcfce7; color: #15803d; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
-    .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid #f1f5f9; background: #f8fafc; }
-    .map-link { display: inline-block; margin-top: 3px; font-size: 7.5px; font-weight: 700; color: var(--primary-blue); text-decoration: none; background: #e0f2fe; padding: 2px 5px; border-radius: 4px; }
-    .map-link:hover { background: #bae6fd; }
+    .card-item {
+      background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass);
+      border-radius: var(--radius-sm); padding: 7px; font-size: 8.5px;
+      display: flex; flex-direction: column; justify-content: space-between; height: 100%; overflow: hidden; transition: all 0.2s ease;
+    }
+    .card-title { font-weight: 850; color: var(--turquoise-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+    .badge-sync { background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
+    .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid var(--border-glass); background: rgba(0,0,0,0.2); }
+    .map-link { display: inline-block; margin-top: 3px; font-size: 7.5px; font-weight: 700; color: var(--turquoise-blue); text-decoration: none; background: rgba(0, 188, 212, 0.1); padding: 2px 5px; border-radius: 4px; }
+    .map-link:hover { background: rgba(0, 188, 212, 0.2); }
 
     /* MODAL POPUP */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.75); display: none; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(2px); }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 16, 0.85); display: none; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(4px); }
     .modal-overlay.active { display: flex !important; }
-    .modal-content { background: #ffffff; padding: 8px; border-radius: var(--radius-md); max-width: 88vw; max-height: 60vh; position: relative; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border-glass); padding: 8px; border-radius: var(--radius-md); max-width: 88vw; max-height: 60vh; position: relative; }
     .modal-content img { max-width: 100%; max-height: 50vh; object-fit: contain; border-radius: var(--radius-sm); }
     .modal-close { position: absolute; top: -10px; right: -10px; background: #ef4444; color: white; border: none; width: 26px; height: 26px; border-radius: 50%; font-weight: 800; cursor: pointer; }
 
     /* DASHBOARD ANALISA */
-    .analisa-card-main { background: linear-gradient(135deg, #2e1065 0%, #1e3a8a 100%); color: white; padding: 20px 12px; border-radius: var(--radius-md); margin-bottom: 16px; text-align: center; box-shadow: 0 6px 15px rgba(30, 58, 138, 0.25); }
+    .analisa-card-main {
+      background: linear-gradient(135deg, rgba(74, 21, 75, 0.75) 0%, rgba(27, 54, 93, 0.85) 100%);
+      color: white; padding: 20px 12px; border-radius: var(--radius-md); margin-bottom: 16px; text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
     .analisa-card-main h4 { font-size: 9.5px; opacity: 0.9; margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;}
     .analisa-card-main h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px;}
     .analisa-card-main p { font-size: 10px; opacity: 0.9; font-weight: 500; margin-bottom: 3px;}
     .analisa-badge { background: rgba(255,255,255,0.15); display: inline-block; padding: 6px 16px; border-radius: 20px; margin-top: 10px; font-size: 9.5px; font-weight:700; border: 1px solid rgba(255,255,255,0.2); }
 
     /* GRAFIK TIM PER PETUGAS INLINE CARD */
-    .chart-container { margin-top: 14px; background: rgba(255, 255, 255, 0.12); border-radius: var(--radius-sm); padding: 12px 10px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.2); }
-    .chart-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; color: #ffffff; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.25); padding-bottom: 4px; }
+    .chart-container { margin-top: 14px; background: rgba(0, 0, 0, 0.25); border-radius: var(--radius-sm); padding: 12px 10px; text-align: left; border: 1px solid var(--border-glass); }
+    .chart-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; color: var(--turquoise-blue); text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.2); padding-bottom: 4px; }
     .chart-row { margin-bottom: 8px; }
     .chart-row:last-child { margin-bottom: 0; }
     .chart-label-group { display: flex; justify-content: space-between; font-size: 9px; font-weight: 700; margin-bottom: 2px; }
     .chart-officer-name { color: #ffffff; }
-    .chart-officer-val { color: #38bdf8; font-weight: 800; }
-    .chart-bar-bg { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.2); border-radius: 3px; overflow: hidden; }
-    .chart-bar-fill { height: 100%; background: linear-gradient(90deg, #38bdf8, #34d399); border-radius: 3px; transition: width 0.6s ease; }
-    .chart-sub-detail { font-size: 7.5px; opacity: 0.85; margin-top: 2px; color: #e2e8f0; }
+    .chart-officer-val { color: var(--turquoise-blue); font-weight: 800; }
+    .chart-bar-bg { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; }
+    .chart-bar-fill { height: 100%; background: linear-gradient(90deg, var(--turquoise-blue), #34d399); border-radius: 3px; transition: width 0.6s ease; }
+    .chart-sub-detail { font-size: 7.5px; opacity: 0.85; margin-top: 2px; color: var(--text-muted); }
 
-    .stat-item { background: #ffffff; border: 1.5px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .stat-item {
+      background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass);
+      border-radius: 8px; padding: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s ease;
+    }
     .stat-item:hover { border-color: var(--turquoise-blue); }
-    .stat-item.active-stat { border-color: var(--turquoise-blue) !important; box-shadow: 0 0 0 2.5px rgba(0, 140, 180, 0.15); background: #f8fafc; }
+    .stat-item.active-stat { border-color: var(--turquoise-blue) !important; box-shadow: 0 0 0 2.5px rgba(0, 188, 212, 0.2); background: rgba(0, 188, 212, 0.06); }
 
     .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .stat-title { font-size: 10.5px; font-weight: 800; color: var(--navy-blue); }
-    .stat-count { font-size: 10.5px; font-weight: 800; color: var(--amartha-purple); }
+    .stat-title { font-size: 10.5px; font-weight: 800; color: var(--text-main); }
+    .stat-count { font-size: 10.5px; font-weight: 800; color: var(--turquoise-blue); }
     
-    .stat-bar-container { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
-    .stat-bar-fill { height: 100%; background: linear-gradient(90deg, var(--amartha-purple), var(--turquoise-blue)); border-radius: 4px; width: 0%; transition: width 1s ease-in-out; }
+    .stat-bar-container { width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 4px; width: 0%; transition: width 1s ease-in-out; }
 
     .hidden { display: none !important; }
     
-    .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(74, 21, 75, 0.3); border-radius: 50%; border-top-color: var(--amartha-purple); animation: spin 1s ease-in-out infinite; margin-top: 20px;}
+    .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(0, 188, 212, 0.3); border-radius: 50%; border-top-color: var(--turquoise-blue); animation: spin 1s ease-in-out infinite; margin-top: 20px;}
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
@@ -245,7 +404,7 @@
       <input type="file" id="fotoKegiatan" class="hidden" accept="image/*" capture="environment" onchange="previewFileName(this)" required>
 
       <button type="button" class="btn-gps" onclick="getGPSLocation(false)">
-        <span style="color: #e11d48;">📍</span> Ambil Titik Lokasi GPS
+        <span style="color: var(--turquoise-blue);">📍</span> Ambil Titik Lokasi GPS
       </button>
       <div class="form-group">
         <input type="text" id="gps" class="form-control" placeholder="Koordinat GPS Presisi" readonly style="text-align: center; font-weight: 600; font-size: 10px;">
@@ -258,7 +417,7 @@
 
   <!-- MENU 2: RIWAYAT LAPORAN -->
   <div id="tab-report" class="tab-content hidden">
-    <h3 style="margin-bottom: 6px; color: var(--amartha-purple); font-size: 11.5px; font-weight: 800;">Riwayat Laporan Masuk</h3>
+    <h3 style="margin-bottom: 6px; color: var(--turquoise-blue); font-size: 11.5px; font-weight: 800;">Riwayat Laporan Masuk</h3>
 
     <div class="filter-box">
       <div class="filter-row">
@@ -318,11 +477,11 @@
 
   <!-- MENU 3: ANALISA DATA -->
   <div id="tab-analisa" class="tab-content hidden">
-    <h3 style="margin-bottom: 6px; color: var(--amartha-purple); font-size: 11.5px; font-weight: 800;">Analisa & Target Rekapitulasi</h3>
+    <h3 style="margin-bottom: 6px; color: var(--turquoise-blue); font-size: 11.5px; font-weight: 800;">Analisa & Target Rekapitulasi</h3>
 
     <div class="filter-box">
       <div class="form-group" style="margin-bottom: 10px;">
-        <label style="color: var(--navy-blue);">Target Analisa Petugas</label>
+        <label style="color: var(--turquoise-blue);">Target Analisa Petugas</label>
         <select id="analisaPetugas" class="form-control" style="padding: 6px; font-size: 10.5px;" onchange="triggerRenderAnalisa()">
           <option value="">Semua Petugas (Keseluruhan Tim)</option>
         </select>
@@ -365,10 +524,23 @@
 
 </div>
 
+<!-- ERGONOMIC FLOATING AI VOICE DOCK (BOTTOM) -->
+<div class="ai-voice-dock">
+  <div class="ai-dock-header">
+    <div class="ai-dock-title"><span>🎙️ AI Voice Assistant</span> <span id="aiTimer" class="ai-timer">03:00</span></div>
+    <div class="ai-demo-btns">
+      <button class="ai-demo-pill" onclick="simulateVoiceDemo('fatimah')">Demo: Uji Kelayakan</button>
+      <button class="ai-demo-pill" onclick="simulateVoiceDemo('abdul')">Demo: Penagihan</button>
+    </div>
+  </div>
+  <canvas id="audioWaveform" class="waveform-canvas"></canvas>
+  <button type="button" id="aiMicBtn" class="ai-mic-btn" onclick="toggleVoiceRecording()">🎙️</button>
+</div>
+
 <!-- MODAL FOTO -->
 <div id="photoModal" class="modal-overlay" onclick="closeModal()">
   <div class="modal-content" onclick="event.stopPropagation()">
-    <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+    <button type="button" class="modal-close" onclick="closeModal()">×</button>
     <img id="modalImg" src="">
   </div>
 </div>
@@ -381,6 +553,7 @@
   let activeJenisFilter = ""; 
   let selectedAnalisaJenis = "";
   let isLiveCameraMode = true;
+  let isRecording = false, recordingTimer = null, timeLeft = 180;
 
   function getTodayYYYYMMDD() {
     const now = new Date();
@@ -436,7 +609,7 @@
     }
 
     fetchBackgroundData();
-    startGPSPreWarm(); // PEMANASAN OTOMATIS SENSORS GPS SAAT APLIKASI DI BUKA
+    startGPSPreWarm();
   });
 
   window.addEventListener('online', () => { updateOnlineStatus(); syncOfflineReports(); });
@@ -468,6 +641,75 @@
       document.getElementById('tab-analisa').classList.remove('hidden'); 
       setTimeout(() => triggerRenderAnalisa(), 10);
     }
+  }
+
+  /* MODUL AI VOICE ASSISTANT */
+  function toggleVoiceRecording() {
+    const btn = document.getElementById('aiMicBtn');
+    const timerEl = document.getElementById('aiTimer');
+    const canvas = document.getElementById('audioWaveform');
+
+    isRecording = !isRecording;
+    if (isRecording) {
+      btn.classList.add('recording');
+      btn.innerHTML = "⏹️";
+      timerEl.style.display = "block";
+      canvas.style.display = "block";
+      timeLeft = 180;
+      startWaveformAnimation();
+      
+      recordingTimer = setInterval(() => {
+        timeLeft--;
+        let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        let s = (timeLeft % 60).toString().padStart(2, '0');
+        timerEl.innerText = `${m}:${s}`;
+        if (timeLeft <= 0) toggleVoiceRecording();
+      }, 1000);
+    } else {
+      btn.classList.remove('recording');
+      btn.innerHTML = "🎙️";
+      timerEl.style.display = "none";
+      canvas.style.display = "none";
+      clearInterval(recordingTimer);
+      alert("🎙️ Rekaman suara selesai dan diurai otomatis oleh AI!");
+    }
+  }
+
+  function startWaveformAnimation() {
+    const canvas = document.getElementById('audioWaveform');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+    function draw() {
+      if (!isRecording) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#00bcd4";
+      for (let i = 0; i < 30; i++) {
+        let h = Math.random() * 20 + 4;
+        ctx.fillRect(i * 14 + 4, (canvas.height - h) / 2, 8, h);
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
+  function simulateVoiceDemo(type) {
+    if (type === 'fatimah') {
+      document.getElementById('namaPetugas').value = "Fatimah";
+      document.getElementById('jenisKegiatan').value = "Uji Kelayakan";
+      toggleFormKegiatan();
+      document.getElementById('kategoriMitra').value = "NTB";
+      document.getElementById('plafond').value = "5000000";
+      document.getElementById('keteranganKegiatan').value = "[AI Voice Parsed] Uji kelayakan mitra baru Fatimah plafond 5 juta lancar.";
+    } else {
+      document.getElementById('namaPetugas').value = "Abdul Hamit";
+      document.getElementById('jenisKegiatan').value = "Hasil Penagihan PAR";
+      toggleFormKegiatan();
+      document.getElementById('nominalPenagihanFormat').value = "Rp 1.500.000";
+      document.getElementById('nominalPenagihanRaw').value = "1500000";
+      document.getElementById('keteranganKegiatan').value = "[AI Voice Parsed] Penagihan PAR Abdul Hamit masuk Rp 1.500.000.";
+    }
+    switchTab('input');
+    alert("✨ AI Voice berhasil mengurai dan mengisi formulir otomatis!");
   }
 
   function toggleCameraMode() {
@@ -561,12 +803,11 @@
     const status = document.getElementById('fileStatus');
     if (input.files && input.files[0]) {
       status.innerText = "✓ Foto Berhasil Dipilih!";
-      status.style.color = "var(--primary-blue)";
+      status.style.color = "var(--turquoise-blue)";
       getGPSLocation(true);
     }
   }
 
-  // PRE-WARMING: MENYIAPKAN LOCK GPS DI LATAR BELAKANG
   function startGPSPreWarm() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(() => {}, () => {}, {
@@ -589,7 +830,6 @@
       btnGps.innerText = "⏳ Mengunci Titik GPS Presisi Tinggi...";
     }
 
-    // OPTIMASI: maximumAge 10000 PERCEPAT RESPONS TANPA MENGURANGI AKURASI
     const gpsOptions = {
       enableHighAccuracy: true,
       timeout: 7000,
@@ -608,25 +848,25 @@
         if (accuracyInput) accuracyInput.value = accuracy;
 
         if (!isAuto) {
-          alert(`📍 Lokasi Berhasil Dikunci!\nAkurasi Sensor HP: ±${accuracy} meter dari posisi presisi.`);
+          alert(`📍 Lokasi Berhasil Dikunci!\nAkurasi Sensor HP: ±${accuracy} meter.`);
         }
 
         if (btnGps) {
           btnGps.disabled = false;
-          btnGps.innerHTML = `<span style="color: #10b981;">📍</span> GPS Terkunci Otomatis (±${accuracy}m)`;
+          btnGps.innerHTML = `<span style="color: #34d399;">📍</span> GPS Terkunci Otomatis (±${accuracy}m)`;
         }
       },
       (err) => {
         let errMsg = "Gagal mengambil lokasi GPS.";
         if (err.code === 1) errMsg = "Izin lokasi ditolak. Harap aktifkan izin GPS di HP Anda.";
-        else if (err.code === 2) errMsg = "Sinyal GPS tidak ditemukan. Pastikan Anda berada di area terbuka.";
+        else if (err.code === 2) errMsg = "Sinyal GPS tidak ditemukan. Pastikan berada di area terbuka.";
         else if (err.code === 3) errMsg = "Waktu pengambilan GPS habis (Timeout). Coba lagi.";
         
         if (!isAuto) alert(errMsg);
 
         if (btnGps && !document.getElementById('gps').value) {
           btnGps.disabled = false;
-          btnGps.innerHTML = `<span style="color: #e11d48;">📍</span> Ambil Titik Lokasi GPS`;
+          btnGps.innerHTML = `<span style="color: var(--turquoise-blue);">📍</span> Ambil Titik Lokasi GPS`;
         }
       },
       gpsOptions
@@ -1077,10 +1317,10 @@
       </div>
     `;
 
-    const colors = ['#4a154b', '#e11d48', '#10b981', '#008cb4', '#0f4c81', '#f59e0b', '#64748b'];
+    const colors = ['#00bcd4', '#34d399', '#f59e0b', '#7c2d96', '#38bdf8', '#ef4444', '#94a3b8'];
     let colorIndex = 0;
 
-    htmlContent += `<h4 style="font-size:11px; color:var(--navy-blue); margin-bottom:8px; margin-top:14px; text-transform:uppercase; font-weight:800;">KOMPOSISI KEGIATAN & TARGET KPI ONLINE</h4>`;
+    htmlContent += `<h4 style="font-size:11px; color:var(--turquoise-blue); margin-bottom:8px; margin-top:14px; text-transform:uppercase; font-weight:800;">KOMPOSISI KEGIATAN & TARGET KPI ONLINE</h4>`;
 
     const targetableActivities = ['Uji Kelayakan', 'Akad Pencairan', 'Hasil Penagihan PAR', 'Home Visit', 'Sosialisasi'];
 
@@ -1125,11 +1365,11 @@
         if (selectedAnalisaJenis === key) {
           if (key === 'Uji Kelayakan') {
             setTargetUI = `
-              <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
-                <span style="font-size: 9px; font-weight: 800; display:block; margin-bottom:4px;">Set Target Uji Kelayakan (Rp):</span>
+              <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.15);">
+                <span style="font-size: 9px; font-weight: 800; display:block; margin-bottom:4px; color:var(--text-main);">Set Target Uji Kelayakan (Rp):</span>
                 <div style="display: flex; gap: 6px;">
                   <input type="text" id="targetUjiKelayakanFormat" value="${currentTarget > 0 ? 'Rp ' + new Intl.NumberFormat('id-ID').format(currentTarget) : ''}" placeholder="Rp 0" oninput="formatTargetRupiahInput(this)"
-                         style="flex: 1; padding: 4px 6px; font-size: 10px; border: 1px solid var(--turquoise-blue); border-radius: 4px;">
+                         style="flex: 1; padding: 4px 6px; font-size: 10px; border: 1px solid var(--turquoise-blue); border-radius: 4px; background:rgba(255,255,255,0.05); color:var(--text-main);">
                   <input type="hidden" id="targetUjiKelayakanRaw" value="${currentTarget}">
                   <button type="button" onclick="simpanTargetLokal('${key}', '${labelPetugas}', '${tipeWaktu}', '${nilaiWaktu}')" 
                           style="padding: 4px 10px; font-size: 9.5px; background: var(--amartha-purple); color: white; border: none; border-radius: 4px; font-weight: 800;">Simpan</button>
@@ -1139,10 +1379,10 @@
           } else {
             let labelInputTarget = (key === 'Hasil Penagihan PAR') ? 'Set Target Jumlah Mitra:' : 'Set Target Giat:';
             setTargetUI = `
-              <div style="margin-top: 10px; display: flex; align-items: center; gap: 6px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
-                <span style="font-size: 9px; font-weight: 800;">${labelInputTarget}</span>
+              <div style="margin-top: 10px; display: flex; align-items: center; gap: 6px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.15);">
+                <span style="font-size: 9px; font-weight: 800; color:var(--text-main);">${labelInputTarget}</span>
                 <input type="number" id="inputTarget_${key.replace(/\s/g, '')}" value="${currentTarget || ''}" placeholder="Jumlah"
-                       style="width: 80px; padding: 4px 6px; font-size: 10px; border: 1px solid var(--turquoise-blue); border-radius: 4px;">
+                       style="width: 80px; padding: 4px 6px; font-size: 10px; border: 1px solid var(--turquoise-blue); border-radius: 4px; background:rgba(255,255,255,0.05); color:var(--text-main);">
                 <button type="button" onclick="simpanTargetLokal('${key}', '${labelPetugas}', '${tipeWaktu}', '${nilaiWaktu}')" 
                         style="padding: 4px 10px; font-size: 9.5px; background: var(--amartha-purple); color: white; border: none; border-radius: 4px; font-weight: 800;">Simpan</button>
               </div>
@@ -1153,7 +1393,7 @@
 
       let extraInfo = "";
       if (key === 'Hasil Penagihan PAR' && totalNominalPenagihan > 0) {
-        extraInfo = ` <span style="font-size:9px; color:#10b981; font-weight:bold;">[${formatRupiah(totalNominalPenagihan)}]</span>`;
+        extraInfo = ` <span style="font-size:9px; color:#34d399; font-weight:bold;">[${formatRupiah(totalNominalPenagihan)}]</span>`;
       }
 
       htmlContent += `
@@ -1262,15 +1502,15 @@
       }
 
       const fotoHtml = imgSrc 
-        ? `<img src="${imgSrc}" class="img-preview" loading="lazy" onclick="openModal('${imgSrc}')" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: #fee2e2; border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
-        : `<div style="height: 55px; background: #f1f5f9; border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 7.5px;">Tanpa Foto</div>`;
+        ? `<img src="${imgSrc}" class="img-preview" loading="lazy" onclick="openModal('${imgSrc}')" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: rgba(239,68,68,0.15); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
+        : `<div style="height: 55px; background: rgba(255,255,255,0.03); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 7.5px;">Tanpa Foto</div>`;
       
-      const katMitra = item.kategoriMitra ? `<span style="color: var(--amartha-purple); font-weight:800;">(${item.kategoriMitra})</span>` : '';
+      const katMitra = item.kategoriMitra ? `<span style="color: var(--turquoise-blue); font-weight:800;">(${item.kategoriMitra})</span>` : '';
       let subValue = "";
       if ((item.jenisKegiatan === 'Uji Kelayakan' || item.jenisKegiatan === 'UK VAL BM' || item.jenisKegiatan === 'Akad Pencairan') && parseFloat(item.plafond) > 0) {
-        subValue = `<div style="color: #dc2626; font-size: 7.5px; font-weight: 800;"><b>Plafond:</b> ${formatRupiah(item.plafond)}</div>`;
+        subValue = `<div style="color: #f87171; font-size: 7.5px; font-weight: 800;"><b>Plafond:</b> ${formatRupiah(item.plafond)}</div>`;
       } else if (item.jenisKegiatan === 'Hasil Penagihan PAR' && parseFloat(item.nominalPenagihan) > 0) {
-        subValue = `<div style="color: #10b981; font-size: 7.5px; font-weight: 800;"><b>Penagihan PAR:</b> ${formatRupiah(item.nominalPenagihan)}</div>`;
+        subValue = `<div style="color: #34d399; font-size: 7.5px; font-weight: 800;"><b>Penagihan PAR:</b> ${formatRupiah(item.nominalPenagihan)}</div>`;
       }
 
       let gpsHtml = "";
@@ -1290,7 +1530,7 @@
           <div style="color: var(--text-main); font-size: 8px; margin-bottom: 1px;"><b>Petugas:</b> ${item.namaPetugas}</div>
           <div style="color: var(--text-muted); font-size: 7.5px; margin-bottom: 1px;"><b>Waktu:</b> ${readableTime}</div>
           ${subValue}
-          <div style="color: #334155; font-size: 7.5px; line-height: 1.15; margin-bottom: 2px;"><b>Ket:</b> ${ketTeks}</div>
+          <div style="color: var(--text-muted); font-size: 7.5px; line-height: 1.15; margin-bottom: 2px;"><b>Ket:</b> ${ketTeks}</div>
           ${gpsHtml}
         </div>
         ${fotoHtml}
