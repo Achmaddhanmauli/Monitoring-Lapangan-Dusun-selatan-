@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bpars-v43';
+const CACHE_NAME = 'bpars-v45';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -32,7 +32,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-First untuk navigasi / HTML agar update terbaru langsung termuat
   if (event.request.mode === 'navigate' || event.request.url.endsWith('.html')) {
     event.respondWith(
       fetch(event.request)
