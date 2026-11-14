@@ -9,7 +9,7 @@
   <style>
     :root {
       --bg-deep: #0a0b10;
-      --bg-card: rgba(18, 20, 32, 0.82);
+      --bg-card: rgba(18, 20, 32, 0.88);
       --border-glass: rgba(255, 255, 255, 0.08);
       --amartha-purple: #7c2d96;
       --amartha-purple-glow: rgba(124, 45, 150, 0.4);
@@ -287,7 +287,7 @@
 </head>
 <body>
 
-<div id="authScreen" class="auth-wrapper hidden">
+<div id="authScreen" class="auth-wrapper">
   <div class="header" style="margin-bottom: 14px; padding: 16px 12px;">
     <h1>BPARS DUSUN SELATAN</h1>
     <p>Verifikasi Akun Petugas & Akses Umum</p>
@@ -598,14 +598,14 @@
 
 <div id="photoModal" class="modal-overlay" onclick="closeModal()">
   <div class="modal-content" onclick="event.stopPropagation()">
-    <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
+    <button type="button" class="modal-close" onclick="closeModal()">×</button>
     <img id="modalImg" src="">
   </div>
 </div>
 
 <div id="editModal" class="modal-overlay" onclick="closeEditModal()">
   <div class="modal-content edit-modal-box" onclick="event.stopPropagation()">
-    <button type="button" class="modal-close" onclick="closeEditModal()">&times;</button>
+    <button type="button" class="modal-close" onclick="closeEditModal()">×</button>
     <h3 style="font-size: 13px; font-weight: 800; color: var(--turquoise-blue); margin-bottom: 8px;">✏️ Koreksi Detail Laporan</h3>
     
     <div class="edit-readonly-info">
@@ -689,11 +689,11 @@
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
     return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, """)
+      .replace(/'/g, "'");
   }
 
   const OFFLINE_DB_NAME = 'bpars_offline_db';
@@ -808,7 +808,9 @@
           return true;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      localStorage.removeItem('bpars_user_session');
+    }
     return false;
   }
 
@@ -848,34 +850,36 @@
   }
 
   function applySessionToAppUI() {
+    const authScreen = document.getElementById('authScreen');
+    const mainApp = document.getElementById('mainAppContainer');
+
     if (!currentUser) {
-      document.getElementById('authScreen').classList.remove('hidden');
-      document.getElementById('mainAppContainer').classList.add('hidden');
+      if (authScreen) authScreen.classList.remove('hidden');
+      if (mainApp) mainApp.classList.add('hidden');
       return;
     }
 
-    document.getElementById('authScreen').classList.add('hidden');
-    document.getElementById('mainAppContainer').classList.remove('hidden');
+    if (authScreen) authScreen.classList.add('hidden');
+    if (mainApp) mainApp.classList.remove('hidden');
 
     const isBM = currentUser.role === 'BM';
     const isViewer = currentUser.role === 'VIEWER';
 
     const icon = isBM ? '👑' : (isViewer ? '🌐' : '👤');
-    document.getElementById('sessionUserDisplay').innerText = `${icon} ${currentUser.namaPetugas}`;
+    const userDisplay = document.getElementById('sessionUserDisplay');
+    if (userDisplay) userDisplay.innerText = `${icon} ${currentUser.namaPetugas}`;
     
     const badge = document.getElementById('sessionRoleBadge');
     const btnLogout = document.getElementById('btnLogoutAccount');
     const navTabInput = document.getElementById('navTabInput');
 
     if (isViewer) {
-      badge.innerText = 'Akses Umum (Hanya Lihat)';
-      badge.className = 'role-badge role-viewer';
-      btnLogout.innerText = '🔑 Login Petugas';
+      if (badge) { badge.innerText = 'Akses Umum (Hanya Lihat)'; badge.className = 'role-badge role-viewer'; }
+      if (btnLogout) btnLogout.innerText = '🔑 Login Petugas';
       if (navTabInput) navTabInput.classList.add('hidden');
     } else {
-      badge.innerText = isBM ? 'BM (Full Akses)' : 'Staf BP';
-      badge.className = `role-badge ${isBM ? 'role-bm' : 'role-bp'}`;
-      btnLogout.innerText = '🚪 Keluar';
+      if (badge) { badge.innerText = isBM ? 'BM (Full Akses)' : 'Staf BP'; badge.className = `role-badge ${isBM ? 'role-bm' : 'role-bp'}`; }
+      if (btnLogout) btnLogout.innerText = '🚪 Keluar';
       if (navTabInput) navTabInput.classList.remove('hidden');
 
       const selectInputPetugas = document.getElementById('namaPetugas');
@@ -901,105 +905,113 @@
 
     localStorage.removeItem('bpars_user_session');
     currentUser = null;
-    document.getElementById('loginPinForm').reset();
-    document.getElementById('registerPinForm').reset();
+    const loginForm = document.getElementById('loginPinForm');
+    const regForm = document.getElementById('registerPinForm');
+    if (loginForm) loginForm.reset();
+    if (regForm) regForm.reset();
     switchAuthMode('login');
     applySessionToAppUI();
   }
 
-  document.getElementById('loginPinForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const nama = document.getElementById('loginNamaPetugas').value.trim();
-    const pin = document.getElementById('loginPinInput').value.trim();
+  const loginPinForm = document.getElementById('loginPinForm');
+  if (loginPinForm) {
+    loginPinForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nama = document.getElementById('loginNamaPetugas').value.trim();
+      const pin = document.getElementById('loginPinInput').value.trim();
 
-    if (!nama || !pin) return;
-    if (!navigator.onLine) {
-      alert("⚠️ Koneksi internet diperlukan untuk verifikasi PIN saat pertama kali masuk.");
-      return;
-    }
-
-    const btn = document.getElementById('btnLoginSubmit');
-    btn.disabled = true;
-    btn.innerText = "Memverifikasi PIN...";
-
-    try {
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: "login_pin", namaPetugas: nama, pin: pin })
-      });
-      const result = await res.json();
-
-      if (result.status === "success") {
-        saveUserSession(result.namaPetugas, result.role);
-        applySessionToAppUI();
-        await initializeAppDataAfterLogin();
-        switchTab('input');
-      } else if (result.status === "not_registered") {
-        alert("ℹ️ " + (result.message || "Akun belum mendaftarkan PIN. Silakan daftar PIN terlebih dahulu."));
-        document.getElementById('regNamaPetugas').value = nama;
-        switchAuthMode('register');
-      } else {
-        alert("❌ " + (result.message || "PIN salah! Silakan coba lagi."));
+      if (!nama || !pin) return;
+      if (!navigator.onLine) {
+        alert("⚠️ Koneksi internet diperlukan untuk verifikasi PIN saat pertama kali masuk.");
+        return;
       }
-    } catch (err) {
-      alert("Gagal terhubung ke server verifikasi: " + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.innerText = "Masuk ke Aplikasi";
-    }
-  });
 
-  document.getElementById('registerPinForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const nama = document.getElementById('regNamaPetugas').value.trim();
-    const pin1 = document.getElementById('regPinInput').value.trim();
-    const pin2 = document.getElementById('regPinConfirm').value.trim();
+      const btn = document.getElementById('btnLoginSubmit');
+      btn.disabled = true;
+      btn.innerText = "Memverifikasi PIN...";
 
-    if (!nama || !pin1) return;
-    if (!/^\d{4,6}$/.test(pin1)) {
-      alert("⚠️ PIN harus berupa 4 sampai 6 digit angka.");
-      return;
-    }
-    if (pin1 !== pin2) {
-      alert("⚠️ Konfirmasi PIN tidak cocok! Ketik ulang PIN yang sama.");
-      return;
-    }
-    if (!navigator.onLine) {
-      alert("⚠️ Koneksi internet diperlukan untuk mendaftarkan PIN baru.");
-      return;
-    }
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: "login_pin", namaPetugas: nama, pin: pin })
+        });
+        const result = await res.json();
 
-    const btn = document.getElementById('btnRegisterSubmit');
-    btn.disabled = true;
-    btn.innerText = "Mendaftarkan PIN...";
-
-    try {
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: "register_pin", namaPetugas: nama, pin: pin1 })
-      });
-      const result = await res.json();
-
-      if (result.status === "success") {
-        saveUserSession(result.namaPetugas, result.role);
-        alert(`✅ PIN untuk ${result.namaPetugas} berhasil didaftarkan!\nHP Anda sekarang sudah masuk otomatis.`);
-        applySessionToAppUI();
-        await initializeAppDataAfterLogin();
-        switchTab('input');
-      } else if (result.status === "already_registered") {
-        alert("ℹ️ " + result.message);
-        document.getElementById('loginNamaPetugas').value = nama;
-        switchAuthMode('login');
-      } else {
-        alert("❌ " + (result.message || "Gagal mendaftarkan PIN."));
+        if (result.status === "success") {
+          saveUserSession(result.namaPetugas, result.role);
+          applySessionToAppUI();
+          await initializeAppDataAfterLogin();
+          switchTab('input');
+        } else if (result.status === "not_registered") {
+          alert("ℹ️ " + (result.message || "Akun belum mendaftarkan PIN. Silakan daftar PIN terlebih dahulu."));
+          document.getElementById('regNamaPetugas').value = nama;
+          switchAuthMode('register');
+        } else {
+          alert("❌ " + (result.message || "PIN salah! Silakan coba lagi."));
+        }
+      } catch (err) {
+        alert("Gagal terhubung ke server verifikasi: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Masuk ke Aplikasi";
       }
-    } catch (err) {
-      alert("Gagal mendaftarkan PIN: " + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.innerText = "Simpan PIN & Masuk";
-    }
-  });
+    });
+  }
+
+  const registerPinForm = document.getElementById('registerPinForm');
+  if (registerPinForm) {
+    registerPinForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nama = document.getElementById('regNamaPetugas').value.trim();
+      const pin1 = document.getElementById('regPinInput').value.trim();
+      const pin2 = document.getElementById('regPinConfirm').value.trim();
+
+      if (!nama || !pin1) return;
+      if (!/^\d{4,6}$/.test(pin1)) {
+        alert("⚠️ PIN harus berupa 4 sampai 6 digit angka.");
+        return;
+      }
+      if (pin1 !== pin2) {
+        alert("⚠️ Konfirmasi PIN tidak cocok! Ketik ulang PIN yang sama.");
+        return;
+      }
+      if (!navigator.onLine) {
+        alert("⚠️ Koneksi internet diperlukan untuk mendaftarkan PIN baru.");
+        return;
+      }
+
+      const btn = document.getElementById('btnRegisterSubmit');
+      btn.disabled = true;
+      btn.innerText = "Mendaftarkan PIN...";
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: "register_pin", namaPetugas: nama, pin: pin1 })
+        });
+        const result = await res.json();
+
+        if (result.status === "success") {
+          saveUserSession(result.namaPetugas, result.role);
+          alert(`✅ PIN untuk ${result.namaPetugas} berhasil didaftarkan!\nHP Anda sekarang sudah masuk otomatis.`);
+          applySessionToAppUI();
+          await initializeAppDataAfterLogin();
+          switchTab('input');
+        } else if (result.status === "already_registered") {
+          alert("ℹ️ " + result.message);
+          document.getElementById('loginNamaPetugas').value = nama;
+          switchAuthMode('login');
+        } else {
+          alert("❌ " + (result.message || "Gagal mendaftarkan PIN."));
+        }
+      } catch (err) {
+        alert("Gagal mendaftarkan PIN: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Simpan PIN & Masuk";
+      }
+    });
+  }
 
   function generateClientId() {
     return 'rep_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
@@ -1039,13 +1051,18 @@
   }
 
   async function initializeAppDataAfterLogin() {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
+    const waktuGiat = document.getElementById('waktuKegiatan');
+    if (waktuGiat) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      waktuGiat.value = now.toISOString().slice(0, 16);
+    }
     
     const todayStr = getTodayYYYYMMDD();
-    document.getElementById('filterTanggal').value = todayStr; 
-    document.getElementById('analisaHarian').value = todayStr;
+    const filterTgl = document.getElementById('filterTanggal');
+    const analHarian = document.getElementById('analisaHarian');
+    if (filterTgl) filterTgl.value = todayStr;
+    if (analHarian) analHarian.value = todayStr;
 
     populatePetugasDropdown();
     updateOnlineStatus();
@@ -1070,13 +1087,19 @@
   }
 
   window.addEventListener('DOMContentLoaded', async () => {
-    const isLoggedIn = loadSavedSession();
-    applySessionToAppUI();
-    if (isLoggedIn) {
-      await initializeAppDataAfterLogin();
-      if (currentUser && currentUser.role === 'VIEWER') {
-        switchTab('analisa');
+    try {
+      const isLoggedIn = loadSavedSession();
+      applySessionToAppUI();
+      if (isLoggedIn) {
+        await initializeAppDataAfterLogin();
+        if (currentUser && currentUser.role === 'VIEWER') {
+          switchTab('analisa');
+        }
       }
+    } catch (err) {
+      console.error("Initialization error:", err);
+      localStorage.removeItem('bpars_user_session');
+      applySessionToAppUI();
     }
   });
 
@@ -1088,6 +1111,7 @@
 
   function updateOnlineStatus() {
     const indicator = document.getElementById('offlineIndicator');
+    if (!indicator) return;
     if (!navigator.onLine) { indicator.classList.add('active'); } 
     else { indicator.classList.remove('active'); }
   }
@@ -1127,16 +1151,19 @@
     tabs.forEach(t => t.classList.add('hidden'));
 
     if (tab === 'input') {
-      btns[0].classList.add('active'); 
-      document.getElementById('tab-input').classList.remove('hidden');
+      if (btns[0]) btns[0].classList.add('active'); 
+      const tabIn = document.getElementById('tab-input');
+      if (tabIn) tabIn.classList.remove('hidden');
       startGPSPreWarm();
     } else if (tab === 'report') {
-      btns[1].classList.add('active'); 
-      document.getElementById('tab-report').classList.remove('hidden'); 
+      if (btns[1]) btns[1].classList.add('active'); 
+      const tabRep = document.getElementById('tab-report');
+      if (tabRep) tabRep.classList.remove('hidden'); 
       setTimeout(() => triggerFilterReport(), 10);
     } else if (tab === 'analisa') {
-      btns[2].classList.add('active'); 
-      document.getElementById('tab-analisa').classList.remove('hidden'); 
+      if (btns[2]) btns[2].classList.add('active'); 
+      const tabAn = document.getElementById('tab-analisa');
+      if (tabAn) tabAn.classList.remove('hidden'); 
       setTimeout(() => triggerRenderAnalisa(), 10);
     }
   }
@@ -1145,44 +1172,49 @@
     const fileInput = document.getElementById('fotoKegiatan');
     const btnToggle = document.getElementById('btnToggleCameraMode');
     const statusText = document.getElementById('fileStatus');
+    if (!fileInput) return;
 
     fileInput.value = "";
-    statusText.style.color = "var(--text-muted)";
+    if (statusText) statusText.style.color = "var(--text-muted)";
 
     isLiveCameraMode = !isLiveCameraMode;
     if (isLiveCameraMode) {
       fileInput.setAttribute('capture', 'environment');
-      btnToggle.innerText = "📁 Mode Upload File";
-      statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
+      if (btnToggle) btnToggle.innerText = "📁 Mode Upload File";
+      if (statusText) statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
     } else {
       fileInput.removeAttribute('capture');
-      btnToggle.innerText = "📷 Mode Kamera Live";
-      statusText.innerText = "Pilih / Upload File Foto dari Galeri";
+      if (btnToggle) btnToggle.innerText = "📷 Mode Kamera Live";
+      if (statusText) statusText.innerText = "Pilih / Upload File Foto dari Galeri";
     }
   }
 
   function triggerFileInput() {
     acquireGPS(true);
-    document.getElementById('fotoKegiatan').click();
+    const fotoGiat = document.getElementById('fotoKegiatan');
+    if (fotoGiat) fotoGiat.click();
   }
 
   function formatInputRupiah(input) {
     let value = input.value.replace(/[^0-9]/g, '');
-    document.getElementById('nominalPenagihanRaw').value = value || "0";
+    const rawEl = document.getElementById('nominalPenagihanRaw');
+    if (rawEl) rawEl.value = value || "0";
     if (value === "") { input.value = ""; return; }
     input.value = "Rp " + new Intl.NumberFormat('id-ID').format(value);
   }
 
   function formatEditRupiah(input) {
     let value = input.value.replace(/[^0-9]/g, '');
-    document.getElementById('editNominalPenagihanRaw').value = value || "0";
+    const rawEl = document.getElementById('editNominalPenagihanRaw');
+    if (rawEl) rawEl.value = value || "0";
     if (value === "") { input.value = ""; return; }
     input.value = "Rp " + new Intl.NumberFormat('id-ID').format(value);
   }
 
   function formatTargetRupiahInput(input) {
     let value = input.value.replace(/[^0-9]/g, '');
-    document.getElementById('targetUjiKelayakanRaw').value = value || "0";
+    const rawEl = document.getElementById('targetUjiKelayakanRaw');
+    if (rawEl) rawEl.value = value || "0";
     if (value === "") { input.value = ""; return; }
     input.value = "Rp " + new Intl.NumberFormat('id-ID').format(value);
   }
@@ -1201,7 +1233,9 @@
   }
 
   function toggleFormKegiatan() {
-    const jenis = document.getElementById('jenisKegiatan').value;
+    const jenisEl = document.getElementById('jenisKegiatan');
+    if (!jenisEl) return;
+    const jenis = jenisEl.value;
     
     const containerPlafondKat = document.getElementById('containerPlafondKategori');
     const wrapKategori = document.getElementById('wrapperKategori');
@@ -1214,51 +1248,51 @@
     const btnToggle = document.getElementById('btnToggleCameraMode');
     const statusText = document.getElementById('fileStatus');
     
-    containerPlafondKat.classList.add('hidden');
-    wrapKategori.classList.add('hidden');
-    wrapPlafond.classList.add('hidden');
-    groupPenagihan.classList.add('hidden');
-    containerPlafondKat.classList.remove('form-grid-2');
+    if (containerPlafondKat) { containerPlafondKat.classList.add('hidden'); containerPlafondKat.classList.remove('form-grid-2'); }
+    if (wrapKategori) wrapKategori.classList.add('hidden');
+    if (wrapPlafond) wrapPlafond.classList.add('hidden');
+    if (groupPenagihan) groupPenagihan.classList.add('hidden');
     
-    document.getElementById('kategoriMitra').required = false;
-    document.getElementById('plafond').required = false;
+    const katMitra = document.getElementById('kategoriMitra');
+    const plaf = document.getElementById('plafond');
+    if (katMitra) katMitra.required = false;
+    if (plaf) plaf.required = false;
 
-    fileInput.value = "";
-    statusText.style.color = "var(--text-muted)";
+    if (fileInput) fileInput.value = "";
+    if (statusText) statusText.style.color = "var(--text-muted)";
     isLiveCameraMode = true;
-    fileInput.setAttribute('capture', 'environment');
-    btnToggle.innerText = "📁 Mode Upload File";
-    statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
+    if (fileInput) fileInput.setAttribute('capture', 'environment');
+    if (btnToggle) btnToggle.innerText = "📁 Mode Upload File";
+    if (statusText) statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
     resetGPSState();
     startGPSPreWarm();
 
     if (jenis === 'UK VAL BM' || jenis === 'Akad Pencairan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
-      containerSwitch.classList.remove('hidden');
-      lblDefault.classList.add('hidden');
+      if (containerSwitch) containerSwitch.classList.remove('hidden');
+      if (lblDefault) lblDefault.classList.add('hidden');
     } else {
-      containerSwitch.classList.add('hidden');
-      lblDefault.classList.remove('hidden');
+      if (containerSwitch) containerSwitch.classList.add('hidden');
+      if (lblDefault) lblDefault.classList.remove('hidden');
     }
 
     if (jenis === 'Uji Kelayakan' || jenis === 'UK VAL BM') {
-      containerPlafondKat.classList.remove('hidden');
-      containerPlafondKat.classList.add('form-grid-2');
-      wrapKategori.classList.remove('hidden');
-      wrapPlafond.classList.remove('hidden');
-      document.getElementById('kategoriMitra').required = true;
-      document.getElementById('plafond').required = true;
+      if (containerPlafondKat) { containerPlafondKat.classList.remove('hidden'); containerPlafondKat.classList.add('form-grid-2'); }
+      if (wrapKategori) wrapKategori.classList.remove('hidden');
+      if (wrapPlafond) wrapPlafond.classList.remove('hidden');
+      if (katMitra) katMitra.required = true;
+      if (plaf) plaf.required = true;
     } else if (jenis === 'Akad Pencairan') {
-      containerPlafondKat.classList.remove('hidden');
-      wrapPlafond.classList.remove('hidden');
-      document.getElementById('plafond').required = true;
+      if (containerPlafondKat) containerPlafondKat.classList.remove('hidden');
+      if (wrapPlafond) wrapPlafond.classList.remove('hidden');
+      if (plaf) plaf.required = true;
     } else if (jenis === 'Hasil Penagihan PAR') {
-      groupPenagihan.classList.remove('hidden');
+      if (groupPenagihan) groupPenagihan.classList.remove('hidden');
     }
   }
 
   function previewFileName(input) {
     const status = document.getElementById('fileStatus');
-    if (input.files && input.files[0]) {
+    if (input.files && input.files[0] && status) {
       status.innerText = "✓ Foto Berhasil Dipilih!";
       status.style.color = "var(--turquoise-blue)";
       acquireGPS(true);
@@ -1301,7 +1335,8 @@
           const lng = pos.coords.longitude.toFixed(7);
           const accuracy = Math.round(pos.coords.accuracy);
 
-          document.getElementById('gps').value = `${lat}, ${lng}`;
+          const gpsInput = document.getElementById('gps');
+          if (gpsInput) gpsInput.value = `${lat}, ${lng}`;
           
           const accuracyInput = document.getElementById('gpsAccuracy');
           if (accuracyInput) accuracyInput.value = accuracy;
@@ -1326,11 +1361,13 @@
 
           if (btnGps) {
             btnGps.disabled = false;
-            if (!document.getElementById('gps').value) {
+            const gpsIn = document.getElementById('gps');
+            if (gpsIn && !gpsIn.value) {
               btnGps.innerHTML = `<span style="color: var(--turquoise-blue);">📍</span> Ambil Titik Lokasi GPS`;
             }
           }
-          resolve(Boolean(document.getElementById('gps').value));
+          const gpsIn = document.getElementById('gps');
+          resolve(Boolean(gpsIn && gpsIn.value));
         },
         gpsOptions
       );
@@ -1387,91 +1424,105 @@
     }
   }
 
-  document.getElementById('reportForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!currentUser || currentUser.role === 'VIEWER') return;
+  const reportForm = document.getElementById('reportForm');
+  if (reportForm) {
+    reportForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser || currentUser.role === 'VIEWER') return;
 
-    const fotoFile = document.getElementById('fotoKegiatan').files[0];
-    if (!fotoFile) {
-      alert("📷 Foto kegiatan wajib dilampirkan terlebih dahulu!");
-      return;
-    }
-
-    const btnSubmit = document.getElementById('btnSubmit');
-    btnSubmit.disabled = true; btnSubmit.innerText = "Memproses...";
-
-    try {
-      let gpsVal = document.getElementById('gps').value.trim();
-      if (!gpsVal) {
-        btnSubmit.innerText = "Mengunci Lokasi GPS...";
-        await acquireGPS(true);
-        gpsVal = document.getElementById('gps').value.trim();
-      }
-
-      if (!gpsVal) {
-        alert("📍 Lokasi GPS wajib dikunci terlebih dahulu sebelum mengirim laporan!\nPastikan GPS/Lokasi HP aktif lalu tekan tombol 'Ambil Titik Lokasi GPS'.");
+      const fotoInput = document.getElementById('fotoKegiatan');
+      if (!fotoInput || !fotoInput.files || !fotoInput.files[0]) {
+        alert("📷 Foto kegiatan wajib dilampirkan terlebih dahulu!");
         return;
       }
 
-      btnSubmit.innerText = "Mengompres Foto & Mengirim...";
-      let fotoBase64 = await compressImage(fotoFile);
-      const gpsAccEl = document.getElementById('gpsAccuracy');
+      const fotoFile = fotoInput.files[0];
+      const btnSubmit = document.getElementById('btnSubmit');
+      if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.innerText = "Memproses..."; }
 
-      const payload = {
-        clientId: generateClientId(),
-        isOfflinePending: true,
-        action: "save_report",
-        namaPetugas: currentUser.namaPetugas,
-        jenisKegiatan: document.getElementById('jenisKegiatan').value,
-        kategoriMitra: document.getElementById('kategoriMitra').value || "",
-        plafond: document.getElementById('plafond').value || "0",
-        nominalPenagihan: document.getElementById('nominalPenagihanRaw').value || "0",
-        waktuKegiatan: document.getElementById('waktuKegiatan').value.replace("T", " "),
-        keteranganKegiatan: document.getElementById('keteranganKegiatan').value,
-        foto: fotoBase64,
-        gps: gpsVal,
-        gpsAccuracy: gpsAccEl ? gpsAccEl.value : "0"
-      };
-
-      if (navigator.onLine) {
-        try {
-          const res = await fetch(SCRIPT_URL, { 
-            method: 'POST', 
-            body: JSON.stringify(payload) 
-          });
-          const result = await res.json();
-          if (result.status === "success" || result.status === "duplicate_ignored") {
-            markClientIdAsSent(payload.clientId);
-            alert("✅ Laporan Berhasil Terkirim ke Spreadsheet!");
-          } else {
-            await saveOfflineReportDB(payload);
-            alert("⚠️ Server sibuk. Laporan otomatis diamankan ke Antrean Offline!");
-          }
-        } catch (networkErr) {
-          await saveOfflineReportDB(payload);
-          alert("⚠️ Sinyal terputus saat mengirim. Laporan otomatis disimpan di Antrean Offline!");
+      try {
+        let gpsInput = document.getElementById('gps');
+        let gpsVal = gpsInput ? gpsInput.value.trim() : "";
+        if (!gpsVal) {
+          if (btnSubmit) btnSubmit.innerText = "Mengunci Lokasi GPS...";
+          await acquireGPS(true);
+          if (gpsInput) gpsVal = gpsInput.value.trim();
         }
-      } else {
-        await saveOfflineReportDB(payload);
-        alert("Mode Offline: Laporan tersimpan di perangkat dan akan otomatis disinkronkan saat online.");
+
+        if (!gpsVal) {
+          alert("📍 Lokasi GPS wajib dikunci terlebih dahulu sebelum mengirim laporan!\nPastikan GPS/Lokasi HP aktif lalu tekan tombol 'Ambil Titik Lokasi GPS'.");
+          if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.innerText = "Kirim Laporan"; }
+          return;
+        }
+
+        if (btnSubmit) btnSubmit.innerText = "Mengompres Foto & Mengirim...";
+        let fotoBase64 = await compressImage(fotoFile);
+        const gpsAccEl = document.getElementById('gpsAccuracy');
+        const jenisGiat = document.getElementById('jenisKegiatan');
+        const katMitra = document.getElementById('kategoriMitra');
+        const plaf = document.getElementById('plafond');
+        const rawPenagihan = document.getElementById('nominalPenagihanRaw');
+        const waktuGiat = document.getElementById('waktuKegiatan');
+        const ketGiat = document.getElementById('keteranganKegiatan');
+
+        const payload = {
+          clientId: generateClientId(),
+          isOfflinePending: true,
+          action: "save_report",
+          namaPetugas: currentUser.namaPetugas,
+          jenisKegiatan: jenisGiat ? jenisGiat.value : "",
+          kategoriMitra: katMitra ? katMitra.value : "",
+          plafond: plaf ? plaf.value : "0",
+          nominalPenagihan: rawPenagihan ? rawPenagihan.value : "0",
+          waktuKegiatan: waktuGiat ? waktuGiat.value.replace("T", " ") : "",
+          keteranganKegiatan: ketGiat ? ketGiat.value : "",
+          foto: fotoBase64,
+          gps: gpsVal,
+          gpsAccuracy: gpsAccEl ? gpsAccEl.value : "0"
+        };
+
+        if (navigator.onLine) {
+          try {
+            const res = await fetch(SCRIPT_URL, { 
+              method: 'POST', 
+              body: JSON.stringify(payload) 
+            });
+            const result = await res.json();
+            if (result.status === "success" || result.status === "duplicate_ignored") {
+              markClientIdAsSent(payload.clientId);
+              alert("✅ Laporan Berhasil Terkirim ke Spreadsheet!");
+            } else {
+              await saveOfflineReportDB(payload);
+              alert("⚠️ Server sibuk. Laporan otomatis diamankan ke Antrean Offline!");
+            }
+          } catch (networkErr) {
+            await saveOfflineReportDB(payload);
+            alert("⚠️ Sinyal terputus saat mengirim. Laporan otomatis disimpan di Antrean Offline!");
+          }
+        } else {
+          await saveOfflineReportDB(payload);
+          alert("Mode Offline: Laporan tersimpan di perangkat dan akan otomatis disinkronkan saat online.");
+        }
+
+        reportForm.reset(); 
+        applySessionToAppUI();
+        if (rawPenagihan) rawPenagihan.value = "0";
+        toggleFormKegiatan();
+
+        if (waktuGiat) {
+          const now = new Date();
+          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+          waktuGiat.value = now.toISOString().slice(0, 16);
+        }
+
+        fetchBackgroundData(); 
+      } catch (err) {
+        alert("Terjadi kesalahan: " + err.message);
+      } finally {
+        if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.innerText = "Kirim Laporan"; }
       }
-
-      document.getElementById('reportForm').reset(); 
-      applySessionToAppUI();
-      document.getElementById('nominalPenagihanRaw').value = "0";
-      toggleFormKegiatan();
-
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
-
-      fetchBackgroundData(); 
-    } catch (err) {
-      alert("Terjadi kesalahan: " + err.message);
-    } finally {
-      btnSubmit.disabled = false; btnSubmit.innerText = "Kirim Laporan";
-    }
-  });
+    });
+  }
 
   function manualSyncNow() {
     processOfflineQueue(true);
@@ -1602,136 +1653,153 @@
     const jenis = (item.jenisKegiatan || '').trim();
     const ketLama = item.keteranganKegiatan || item.keterangan || "";
 
-    document.getElementById('editInfoPetugas').innerText = item.namaPetugas || '-';
-    document.getElementById('editInfoJenis').innerText = jenis || '-';
-    document.getElementById('editInfoWaktu').innerText = formatReadableDateTime(item.waktuKegiatan);
+    const infoPetugas = document.getElementById('editInfoPetugas');
+    const infoJenis = document.getElementById('editInfoJenis');
+    const infoWaktu = document.getElementById('editInfoWaktu');
+    if (infoPetugas) infoPetugas.innerText = item.namaPetugas || '-';
+    if (infoJenis) infoJenis.innerText = jenis || '-';
+    if (infoWaktu) infoWaktu.innerText = formatReadableDateTime(item.waktuKegiatan);
 
     const grpKategori = document.getElementById('editGroupKategori');
     const grpPlafond = document.getElementById('editGroupPlafond');
     const grpPenagihan = document.getElementById('editGroupPenagihan');
 
-    grpKategori.classList.add('hidden');
-    grpPlafond.classList.add('hidden');
-    grpPenagihan.classList.add('hidden');
+    if (grpKategori) grpKategori.classList.add('hidden');
+    if (grpPlafond) grpPlafond.classList.add('hidden');
+    if (grpPenagihan) grpPenagihan.classList.add('hidden');
 
     if (jenis === 'Uji Kelayakan' || jenis === 'UK VAL BM') {
-      grpKategori.classList.remove('hidden');
-      grpPlafond.classList.remove('hidden');
-      document.getElementById('editKategoriMitra').value = item.kategoriMitra || '';
-      document.getElementById('editPlafond').value = String(parseCleanNumber(item.plafond));
+      if (grpKategori) grpKategori.classList.remove('hidden');
+      if (grpPlafond) grpPlafond.classList.remove('hidden');
+      const editKat = document.getElementById('editKategoriMitra');
+      const editPlaf = document.getElementById('editPlafond');
+      if (editKat) editKat.value = item.kategoriMitra || '';
+      if (editPlaf) editPlaf.value = String(parseCleanNumber(item.plafond));
     } else if (jenis === 'Akad Pencairan') {
-      grpPlafond.classList.remove('hidden');
-      document.getElementById('editPlafond').value = String(parseCleanNumber(item.plafond));
+      if (grpPlafond) grpPlafond.classList.remove('hidden');
+      const editPlaf = document.getElementById('editPlafond');
+      if (editPlaf) editPlaf.value = String(parseCleanNumber(item.plafond));
     } else if (jenis === 'Hasil Penagihan PAR') {
-      grpPenagihan.classList.remove('hidden');
+      if (grpPenagihan) grpPenagihan.classList.remove('hidden');
       const nomVal = parseCleanNumber(item.nominalPenagihan);
-      document.getElementById('editNominalPenagihanRaw').value = nomVal;
-      document.getElementById('editNominalPenagihanFormat').value = nomVal > 0 ? "Rp " + new Intl.NumberFormat('id-ID').format(nomVal) : "";
+      const editRaw = document.getElementById('editNominalPenagihanRaw');
+      const editFmt = document.getElementById('editNominalPenagihanFormat');
+      if (editRaw) editRaw.value = nomVal;
+      if (editFmt) editFmt.value = nomVal > 0 ? "Rp " + new Intl.NumberFormat('id-ID').format(nomVal) : "";
     }
 
-    document.getElementById('editKeteranganKegiatan').value = ketLama;
-    document.getElementById('editModal').classList.add('active');
+    const editKet = document.getElementById('editKeteranganKegiatan');
+    if (editKet) editKet.value = ketLama;
+    const editModal = document.getElementById('editModal');
+    if (editModal) editModal.classList.add('active');
   }
 
   function closeEditModal() {
-    document.getElementById('editModal').classList.remove('active');
+    const editModal = document.getElementById('editModal');
+    if (editModal) editModal.classList.remove('active');
     editingTargetItem = null;
   }
 
-  document.getElementById('editReportForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!editingTargetItem || !canUserModifyReport(editingTargetItem)) return;
+  const editReportForm = document.getElementById('editReportForm');
+  if (editReportForm) {
+    editReportForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!editingTargetItem || !canUserModifyReport(editingTargetItem)) return;
 
-    const btnSave = document.getElementById('btnSaveEdit');
-    btnSave.disabled = true;
-    btnSave.innerText = "Menyimpan...";
+      const btnSave = document.getElementById('btnSaveEdit');
+      if (btnSave) { btnSave.disabled = true; btnSave.innerText = "Menyimpan..."; }
 
-    try {
-      const jenis = (editingTargetItem.jenisKegiatan || '').trim();
-      const oldKet = editingTargetItem.keteranganKegiatan || editingTargetItem.keterangan || "";
-      const newKet = document.getElementById('editKeteranganKegiatan').value.trim();
+      try {
+        const jenis = (editingTargetItem.jenisKegiatan || '').trim();
+        const oldKet = editingTargetItem.keteranganKegiatan || editingTargetItem.keterangan || "";
+        const editKet = document.getElementById('editKeteranganKegiatan');
+        const newKet = editKet ? editKet.value.trim() : "";
 
-      let newKategori = editingTargetItem.kategoriMitra || "";
-      let newPlafond = parseCleanNumber(editingTargetItem.plafond);
-      let newPenagihan = parseCleanNumber(editingTargetItem.nominalPenagihan);
+        let newKategori = editingTargetItem.kategoriMitra || "";
+        let newPlafond = parseCleanNumber(editingTargetItem.plafond);
+        let newPenagihan = parseCleanNumber(editingTargetItem.nominalPenagihan);
 
-      if (jenis === 'Uji Kelayakan' || jenis === 'UK VAL BM') {
-        newKategori = document.getElementById('editKategoriMitra').value;
-        newPlafond = parseCleanNumber(document.getElementById('editPlafond').value);
-      } else if (jenis === 'Akad Pencairan') {
-        newPlafond = parseCleanNumber(document.getElementById('editPlafond').value);
-      } else if (jenis === 'Hasil Penagihan PAR') {
-        newPenagihan = parseCleanNumber(document.getElementById('editNominalPenagihanRaw').value);
-      }
+        if (jenis === 'Uji Kelayakan' || jenis === 'UK VAL BM') {
+          const editKat = document.getElementById('editKategoriMitra');
+          const editPlaf = document.getElementById('editPlafond');
+          newKategori = editKat ? editKat.value : "";
+          newPlafond = parseCleanNumber(editPlaf ? editPlaf.value : 0);
+        } else if (jenis === 'Akad Pencairan') {
+          const editPlaf = document.getElementById('editPlafond');
+          newPlafond = parseCleanNumber(editPlaf ? editPlaf.value : 0);
+        } else if (jenis === 'Hasil Penagihan PAR') {
+          const editRaw = document.getElementById('editNominalPenagihanRaw');
+          newPenagihan = parseCleanNumber(editRaw ? editRaw.value : 0);
+        }
 
-      if (editingTargetItem.isOfflinePending) {
-        const updatedItem = {
-          ...editingTargetItem,
+        if (editingTargetItem.isOfflinePending) {
+          const updatedItem = {
+            ...editingTargetItem,
+            kategoriMitra: newKategori,
+            plafond: String(newPlafond),
+            nominalPenagihan: String(newPenagihan),
+            keteranganKegiatan: newKet
+          };
+          await saveOfflineReportDB(updatedItem, false);
+          closeEditModal();
+          await triggerFilterReport();
+          await triggerRenderAnalisa();
+          alert("✅ Koreksi laporan di antrean offline berhasil disimpan!");
+          return;
+        }
+
+        if (!navigator.onLine) {
+          alert("⚠️ Koneksi internet diperlukan untuk menyimpan perubahan ke Spreadsheet.");
+          return;
+        }
+
+        const editPayload = {
+          action: "edit_report",
+          requesterName: currentUser.namaPetugas,
+          requesterRole: currentUser.role,
+          clientId: editingTargetItem.clientId || "",
+          namaPetugas: editingTargetItem.namaPetugas,
+          jenisKegiatan: jenis,
+          waktuKegiatan: editingTargetItem.waktuKegiatan,
+          fotoUrl: editingTargetItem.fotoUrl || "",
+          oldKeterangan: oldKet,
           kategoriMitra: newKategori,
-          plafond: String(newPlafond),
-          nominalPenagihan: String(newPenagihan),
+          plafond: newPlafond,
+          nominalPenagihan: newPenagihan,
           keteranganKegiatan: newKet
         };
-        await saveOfflineReportDB(updatedItem, false);
-        closeEditModal();
-        await triggerFilterReport();
-        await triggerRenderAnalisa();
-        alert("✅ Koreksi laporan di antrean offline berhasil disimpan!");
-        return;
+
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(editPayload)
+        });
+        const result = await res.json();
+
+        if (result.status === "updated") {
+          editingTargetItem.kategoriMitra = newKategori;
+          editingTargetItem.plafond = newPlafond;
+          editingTargetItem.nominalPenagihan = newPenagihan;
+          editingTargetItem.keteranganKegiatan = newKet;
+          editingTargetItem.keterangan = newKet;
+
+          localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
+
+          closeEditModal();
+          await triggerFilterReport();
+          await triggerRenderAnalisa();
+          alert("✅ Koreksi laporan berhasil disimpan ke Spreadsheet!");
+        } else if (result.status === "forbidden") {
+          alert("⛔ Akses ditolak: Anda tidak memiliki izin mengedit laporan ini.");
+        } else {
+          alert("⚠️ Baris laporan tidak ditemukan di Spreadsheet. Tekan 'Sinkronkan Sekarang' lalu coba lagi.");
+        }
+      } catch (err) {
+        alert("Gagal menyimpan koreksi: " + err.message);
+      } finally {
+        if (btnSave) { btnSave.disabled = false; btnSave.innerText = "Simpan Koreksi"; }
       }
-
-      if (!navigator.onLine) {
-        alert("⚠️ Koneksi internet diperlukan untuk menyimpan perubahan ke Spreadsheet.");
-        return;
-      }
-
-      const editPayload = {
-        action: "edit_report",
-        requesterName: currentUser.namaPetugas,
-        requesterRole: currentUser.role,
-        clientId: editingTargetItem.clientId || "",
-        namaPetugas: editingTargetItem.namaPetugas,
-        jenisKegiatan: jenis,
-        waktuKegiatan: editingTargetItem.waktuKegiatan,
-        fotoUrl: editingTargetItem.fotoUrl || "",
-        oldKeterangan: oldKet,
-        kategoriMitra: newKategori,
-        plafond: newPlafond,
-        nominalPenagihan: newPenagihan,
-        keteranganKegiatan: newKet
-      };
-
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(editPayload)
-      });
-      const result = await res.json();
-
-      if (result.status === "updated") {
-        editingTargetItem.kategoriMitra = newKategori;
-        editingTargetItem.plafond = newPlafond;
-        editingTargetItem.nominalPenagihan = newPenagihan;
-        editingTargetItem.keteranganKegiatan = newKet;
-        editingTargetItem.keterangan = newKet;
-
-        localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
-
-        closeEditModal();
-        await triggerFilterReport();
-        await triggerRenderAnalisa();
-        alert("✅ Koreksi laporan berhasil disimpan ke Spreadsheet!");
-      } else if (result.status === "forbidden") {
-        alert("⛔ Akses ditolak: Anda tidak memiliki izin mengedit laporan ini.");
-      } else {
-        alert("⚠️ Baris laporan tidak ditemukan di Spreadsheet. Tekan 'Sinkronkan Sekarang' lalu coba lagi.");
-      }
-    } catch (err) {
-      alert("Gagal menyimpan koreksi: " + err.message);
-    } finally {
-      btnSave.disabled = false;
-      btnSave.innerText = "Simpan Koreksi";
-    }
-  });
+    });
+  }
 
   async function confirmDeleteReport(idx) {
     const item = currentRenderedReports[idx];
@@ -1749,7 +1817,7 @@
       `• Petugas: ${item.namaPetugas}\n` +
       `• Kegiatan: ${jenis}\n` +
       `• Waktu: ${waktuStr}\n\n` +
-      `Data yang dihapus akan hilang permanen dari Riwayat, Analisa, dan Spreadsheet. Lanjutkan?`
+      `Data akan dihapus dari Riwayat & Analisa (riwayat penghapusan tetap tercatat di sheet Log_Hapus). Lanjutkan?`
     );
 
     if (!langkah1) return;
@@ -1806,11 +1874,11 @@
 
         await triggerFilterReport();
         await triggerRenderAnalisa();
-        alert("🗑️ Laporan berhasil dihapus dari sistem & Spreadsheet!");
+        alert("🗑️ Laporan berhasil dihapus & dicatat ke sheet Log_Hapus!");
       } else if (result.status === "forbidden") {
         alert("⛔ Akses ditolak: Anda tidak memiliki izin menghapus laporan ini.");
       } else {
-        alert("⚠️ Baris laporan tidak ditemukan di Spreadsheet. Coba refresh data terlebih dahulu.");
+        alert("⚠️ Baris laporan tidak ditemukan di Spreadsheet. Tekan 'Sinkronkan Sekarang' lalu coba lagi.");
       }
     } catch (err) {
       alert("Gagal menghapus laporan: " + err.message);
@@ -1840,18 +1908,23 @@
   }
 
   function clearOtherAnalisaTime(activeField) {
-    if (activeField !== 'harian') document.getElementById('analisaHarian').value = '';
-    if (activeField !== 'mingguan') document.getElementById('analisaMingguan').value = '';
-    if (activeField !== 'bulanan') document.getElementById('analisaBulan').value = '';
-    if (activeField !== 'tahunan') document.getElementById('analisaTahun').value = '';
+    if (activeField !== 'harian') { let el = document.getElementById('analisaHarian'); if(el) el.value = ''; }
+    if (activeField !== 'mingguan') { let el = document.getElementById('analisaMingguan'); if(el) el.value = ''; }
+    if (activeField !== 'bulanan') { let el = document.getElementById('analisaBulan'); if(el) el.value = ''; }
+    if (activeField !== 'tahunan') { let el = document.getElementById('analisaTahun'); if(el) el.value = ''; }
   }
 
   function resetAnalisa() {
-    document.getElementById('analisaPetugas').value = '';
-    document.getElementById('analisaHarian').value = '';
-    document.getElementById('analisaMingguan').value = '';
-    document.getElementById('analisaBulan').value = '';
-    document.getElementById('analisaTahun').value = '';
+    let aPetugas = document.getElementById('analisaPetugas');
+    let aHar = document.getElementById('analisaHarian');
+    let aMing = document.getElementById('analisaMingguan');
+    let aBulan = document.getElementById('analisaBulan');
+    let aTahun = document.getElementById('analisaTahun');
+    if (aPetugas) aPetugas.value = '';
+    if (aHar) aHar.value = '';
+    if (aMing) aMing.value = '';
+    if (aBulan) aBulan.value = '';
+    if (aTahun) aTahun.value = '';
     selectedAnalisaJenis = '';
     triggerRenderAnalisa();
   }
@@ -1871,10 +1944,12 @@
     let targetVal = 0;
 
     if (key === 'Uji Kelayakan') {
-      targetVal = parseCleanNumber(document.getElementById('targetUjiKelayakanRaw').value);
+      let rawTgt = document.getElementById('targetUjiKelayakanRaw');
+      targetVal = parseCleanNumber(rawTgt ? rawTgt.value : 0);
     } else {
       const inputId = `inputTarget_${key.replace(/\s/g, '')}`;
-      targetVal = parseCleanNumber(document.getElementById(inputId).value);
+      let targetInput = document.getElementById(inputId);
+      targetVal = parseCleanNumber(targetInput ? targetInput.value : 0);
     }
 
     onlineTargets[targetKey] = targetVal;
@@ -1914,11 +1989,16 @@
        reportsData = [...offlineData, ...allReports];
     }
     
-    const petugas = document.getElementById('analisaPetugas').value.trim();
-    const harian = document.getElementById('analisaHarian').value;
-    const mingguan = document.getElementById('analisaMingguan').value;
-    const bulanan = document.getElementById('analisaBulan').value;
-    const tahunan = document.getElementById('analisaTahun').value;
+    const analPetugas = document.getElementById('analisaPetugas');
+    const petugas = analPetugas ? analPetugas.value.trim() : "";
+    const analHar = document.getElementById('analisaHarian');
+    const harian = analHar ? analHar.value : "";
+    const analMing = document.getElementById('analisaMingguan');
+    const mingguan = analMing ? analMing.value : "";
+    const analBulan = document.getElementById('analisaBulan');
+    const bulanan = analBulan ? analBulan.value : "";
+    const analThn = document.getElementById('analisaTahun');
+    const tahunan = analThn ? analThn.value : "";
 
     let filtered = reportsData;
     let labelPeriode = "Sepanjang Waktu";
@@ -2049,6 +2129,7 @@
     });
 
     const dashboard = document.getElementById('analisaDashboard');
+    if (!dashboard) return;
 
     let cardTitle = "TOTAL DISBURSEMENT (PENCAIRAN)";
     let cardValue = formatRupiah(capNTB + capETB);
@@ -2239,8 +2320,10 @@
   }
 
   function applyFilters(reportsData) {
-    const selectedPetugas = document.getElementById("filterPetugas").value.trim().toLowerCase();
-    const selectedTanggal = document.getElementById("filterTanggal").value;
+    const fPetugas = document.getElementById("filterPetugas");
+    const fTgl = document.getElementById("filterTanggal");
+    const selectedPetugas = fPetugas ? fPetugas.value.trim().toLowerCase() : "";
+    const selectedTanggal = fTgl ? fTgl.value : "";
 
     const baseFiltered = reportsData.filter(item => {
       const matchPetugas = !selectedPetugas || (item.namaPetugas && item.namaPetugas.trim().toLowerCase() === selectedPetugas);
@@ -2274,19 +2357,30 @@
       else if (j === 'Door to door') counts.door++;
     });
 
-    document.getElementById('sumTotalKegiatan').innerText = counts.total;
-    if(document.getElementById('sumUKVALBM')) document.getElementById('sumUKVALBM').innerText = counts.ukvalbm;
-    document.getElementById('sumUjiKelayakan').innerText = counts.uji;
-    document.getElementById('sumAkadPencairan').innerText = counts.akad;
-    document.getElementById('sumHasilPenagihanPAR').innerText = counts.tagihPAR;
-    document.getElementById('sumHomeVisit').innerText = counts.home;
-    document.getElementById('sumSosialisasi').innerText = counts.sos;
-    if(document.getElementById('sumKumpulanPelayanan')) document.getElementById('sumKumpulanPelayanan').innerText = counts.kumpulan;
-    document.getElementById('sumDoortodoor').innerText = counts.door;
+    let elTotal = document.getElementById('sumTotalKegiatan');
+    let elUk = document.getElementById('sumUKVALBM');
+    let elUji = document.getElementById('sumUjiKelayakan');
+    let elAkad = document.getElementById('sumAkadPencairan');
+    let elTagih = document.getElementById('sumHasilPenagihanPAR');
+    let elHome = document.getElementById('sumHomeVisit');
+    let elSos = document.getElementById('sumSosialisasi');
+    let elKumpul = document.getElementById('sumKumpulanPelayanan');
+    let elDoor = document.getElementById('sumDoortodoor');
+
+    if (elTotal) elTotal.innerText = counts.total;
+    if (elUk) elUk.innerText = counts.ukvalbm;
+    if (elUji) elUji.innerText = counts.uji;
+    if (elAkad) elAkad.innerText = counts.akad;
+    if (elTagih) elTagih.innerText = counts.tagihPAR;
+    if (elHome) elHome.innerText = counts.home;
+    if (elSos) elSos.innerText = counts.sos;
+    if (elKumpul) elKumpul.innerText = counts.kumpulan;
+    if (elDoor) elDoor.innerText = counts.door;
   }
 
   function renderReports(reports) {
     const container = document.getElementById('reportContainer'); 
+    if (!container) return;
     container.innerHTML = '';
     currentRenderedReports = [];
     
@@ -2313,7 +2407,7 @@
 
       const safeImgSrc = escapeHtml(imgSrc);
       const fotoHtml = imgSrc 
-        ? `<img src="${safeImgSrc}" class="img-preview" loading="lazy" onclick="openModal('${safeImgSrc}')" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: rgba(239,68,68,0.15); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
+        ? `<img src="${safeImgSrc}" class="img-preview" loading="lazy" onclick="openModalByIdx(${idx})" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: rgba(239,68,68,0.15); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
         : `<div style="height: 55px; background: rgba(255,255,255,0.03); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 7.5px;">Tanpa Foto</div>`;
       
       const katMitra = item.kategoriMitra ? `<span style="color: var(--turquoise-blue); font-weight:800;">(${escapeHtml(item.kategoriMitra)})</span>` : '';
@@ -2394,29 +2488,52 @@
     const selectRiwayat = document.getElementById("filterPetugas");
     const selectAnalisa = document.getElementById("analisaPetugas");
 
-    selectRiwayat.innerHTML = `<option value="">Semua Petugas</option>`;
-    selectAnalisa.innerHTML = `<option value="">Semua Petugas (Keseluruhan Tim)</option>`;
+    if (selectRiwayat) {
+      selectRiwayat.innerHTML = `<option value="">Semua Petugas</option>`;
+      listSemuaPetugas.forEach(p => {
+        selectRiwayat.innerHTML += `<option value="${p}">${p}</option>`;
+      });
+    }
 
-    listSemuaPetugas.forEach(p => {
-      selectRiwayat.innerHTML += `<option value="${p}">${p}</option>`;
-    });
-
-    listStafOperasional.forEach(p => {
-      selectAnalisa.innerHTML += `<option value="${p}">${p}</option>`;
-    });
+    if (selectAnalisa) {
+      selectAnalisa.innerHTML = `<option value="">Semua Petugas (Keseluruhan Tim)</option>`;
+      listStafOperasional.forEach(p => {
+        selectAnalisa.innerHTML += `<option value="${p}">${p}</option>`;
+      });
+    }
   }
 
   function resetFilters() {
-    document.getElementById("filterPetugas").value = ""; 
-    document.getElementById("filterTanggal").value = ""; 
+    let fPetugas = document.getElementById("filterPetugas");
+    let fTgl = document.getElementById("filterTanggal");
+    if (fPetugas) fPetugas.value = ""; 
+    if (fTgl) fTgl.value = ""; 
     activeJenisFilter = ""; 
     document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active-card'));
-    document.getElementById('card-All').classList.add('active-card');
+    let cardAll = document.getElementById('card-All');
+    if (cardAll) cardAll.classList.add('active-card');
     triggerFilterReport();
   }
 
-  function openModal(url) { document.getElementById('modalImg').src = url; document.getElementById('photoModal').classList.add('active'); }
-  function closeModal() { document.getElementById('photoModal').classList.remove('active'); }
+  function openModalByIdx(idx) {
+    const item = currentRenderedReports[idx];
+    if (!item) return;
+    const url = item.fotoUrl ? getDirectImageUrl(item.fotoUrl) : (item.foto || "");
+    if (!url) return;
+    openModal(url);
+  }
+
+  function openModal(url) { 
+    let modalImg = document.getElementById('modalImg');
+    let photoModal = document.getElementById('photoModal');
+    if (modalImg) modalImg.src = url; 
+    if (photoModal) photoModal.classList.add('active'); 
+  }
+  
+  function closeModal() { 
+    let photoModal = document.getElementById('photoModal');
+    if (photoModal) photoModal.classList.remove('active'); 
+  }
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
