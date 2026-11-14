@@ -1,15 +1,18 @@
 {
-  "name": "BPARS Dusun Selatan",
-  "short_name": "BPARS",
+  "name": "BPARS - Performance Activity Reporting System",
+  "short_name": "BPARS Pro",
+  "description": "Sistem Pelaporan & Analisa Kinerja Lapangan Dusun Selatan",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0a0b10",
-  "theme_color": "#4a154b",
+  "background_color": "#07080d",
+  "theme_color": "#2e1065",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "logo-bpars.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
