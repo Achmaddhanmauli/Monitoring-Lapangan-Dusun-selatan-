@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bpars-v41';
+const CACHE_NAME = 'bpars-v43';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -29,6 +29,24 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || event.request.url.includes('script.google.com')) {
+    return;
+  }
+
+  // Network-First untuk navigasi / HTML agar update terbaru langsung termuat
+  if (event.request.mode === 'navigate' || event.request.url.endsWith('.html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
     return;
   }
 
