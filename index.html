@@ -627,13 +627,13 @@
   </div>
 
   <div id="tab-analisa" class="tab-content hidden">
-    <h3 style="margin-bottom: 6px; color: var(--turquoise-blue); font-size: 11.5px; font-weight: 800;">Analisa & Target Rekapitulasi</h3>
+    <h3 style="margin-bottom: 6px; color: var(--turquoise-blue); font-size: 11.5px; font-weight: 800;">Analisa & Target Rekapitulasi Staf BP</h3>
 
     <div class="filter-box">
       <div class="form-group" style="margin-bottom: 10px;">
-        <label style="color: var(--turquoise-blue);">Target Analisa Petugas</label>
+        <label style="color: var(--turquoise-blue);">Target Analisa Petugas (Staf BP)</label>
         <select id="analisaPetugas" class="form-control" style="padding: 6px; font-size: 10.5px;" onchange="triggerRenderAnalisa()">
-          <option value="">Semua Petugas (Keseluruhan Tim)</option>
+          <option value="">Semua Staf BP (Keseluruhan Tim)</option>
         </select>
       </div>
 
@@ -746,6 +746,7 @@
 
 <script>
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
+  const LIST_STAF_BP = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
 
   let currentUser = null; 
   let allReports = [];
@@ -756,6 +757,8 @@
   let selectedAnalisaJenis = "";
   let isLiveCameraMode = true;
   let isSyncing = false;
+  let gpsWatchId = null;
+  const inFlightClientIds = new Set();
 
   function safeStorageGet(key, fallback = null) {
     try {
@@ -784,7 +787,20 @@
     }
   }
 
-  async function safeFetchJson(url, options = {}, timeoutMs = 20000) {
+  function saveCachedReportsCompact(reportsList) {
+    try {
+      const slimList = (reportsList || []).slice(0, 150).map(r => {
+        const copy = { ...r };
+        if (copy.foto && String(copy.foto).length > 500) {
+          delete copy.foto;
+        }
+        return copy;
+      });
+      safeStorageSet('cached_reports', JSON.stringify(slimList));
+    } catch (e) {}
+  }
+
+  async function safeFetchJson(url, options = {}, timeoutMs = 25000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -846,31 +862,53 @@
     imgEl.parentNode.replaceChild(errDiv, imgEl);
   }
 
+  function buildFallbackReportKey(r) {
+    if (!r) return "";
+    return [
+      String(r.namaPetugas || "").trim().toLowerCase(),
+      String(r.jenisKegiatan || "").trim().toLowerCase(),
+      extractYYYYMMDD(r.waktuKegiatan || r.timestampServer),
+      String(r.keteranganKegiatan || r.keterangan || "").replace(/\s+/g, " ").trim().toLowerCase()
+    ].join("|");
+  }
+
   function isSameReportRecord(a, b) {
     if (!a || !b) return false;
     if (a === b) return true;
     if (a.clientId && b.clientId) {
       return String(a.clientId).trim() === String(b.clientId).trim();
     }
-    return (
-      String(a.namaPetugas || '').trim().toLowerCase() === String(b.namaPetugas || '').trim().toLowerCase() &&
-      String(a.jenisKegiatan || '').trim() === String(b.jenisKegiatan || '').trim() &&
-      extractYYYYMMDD(a.waktuKegiatan) === extractYYYYMMDD(b.waktuKegiatan) &&
-      String(a.fotoUrl || '').trim() === String(b.fotoUrl || '').trim()
-    );
+    return buildFallbackReportKey(a) === buildFallbackReportKey(b);
   }
 
   function mergeOfflineAndServerReports(offlineList, serverList) {
-    const serverIds = new Set(
-      (serverList || [])
-        .map(r => String(r.clientId || '').trim())
-        .filter(Boolean)
-    );
-    const filteredOffline = (offlineList || []).filter(item => {
-      const cId = String(item.clientId || '').trim();
-      return !cId || !serverIds.has(cId);
+    const seenClientIds = new Set();
+    const seenFallbackKeys = new Set();
+    const merged = [];
+
+    (serverList || []).forEach(r => {
+      const cId = String(r.clientId || '').trim();
+      const fKey = buildFallbackReportKey(r);
+      if (cId) seenClientIds.add(cId);
+      if (fKey) seenFallbackKeys.add(fKey);
     });
-    return [...filteredOffline, ...(serverList || [])];
+
+    (offlineList || []).forEach(item => {
+      const cId = String(item.clientId || '').trim();
+      const fKey = buildFallbackReportKey(item);
+      if ((cId && (seenClientIds.has(cId) || isClientIdAlreadySent(cId))) || (fKey && seenFallbackKeys.has(fKey))) {
+        return;
+      }
+      if (cId) seenClientIds.add(cId);
+      if (fKey) seenFallbackKeys.add(fKey);
+      merged.push(item);
+    });
+
+    (serverList || []).forEach(item => {
+      merged.push(item);
+    });
+
+    return merged;
   }
 
   const OFFLINE_DB_NAME = 'bpars_offline_db';
@@ -1100,6 +1138,7 @@
       if (!yakin) return;
     }
 
+    stopGPSBackgroundWatch();
     safeStorageRemove('bpars_user_session');
     currentUser = null;
     const loginForm = document.getElementById('loginPinForm');
@@ -1389,15 +1428,16 @@
     }
 
     if (currentUser && currentUser.role !== 'VIEWER') {
+      startGPSBackgroundWatch();
       if (navigator.onLine) {
         processOfflineQueue(false);
       }
-      startGPSPreWarm();
     }
   }
 
   window.addEventListener('DOMContentLoaded', async () => {
     try {
+      startGPSBackgroundWatch();
       const isLoggedIn = loadSavedSession();
       applySessionToAppUI();
       if (isLoggedIn) {
@@ -1451,7 +1491,7 @@
       let sentIds = JSON.parse(safeStorageGet('sent_report_ids', '[]'));
       if (!sentIds.includes(itemId)) {
         sentIds.push(itemId);
-        if (sentIds.length > 250) sentIds = sentIds.slice(-250);
+        if (sentIds.length > 350) sentIds = sentIds.slice(-350);
         safeStorageSet('sent_report_ids', JSON.stringify(sentIds));
       }
     } catch (e) {}
@@ -1481,7 +1521,7 @@
       if (btns[0]) btns[0].classList.add('active'); 
       const tabIn = document.getElementById('tab-input');
       if (tabIn) tabIn.classList.remove('hidden');
-      startGPSPreWarm();
+      startGPSBackgroundWatch();
     } else if (tab === 'report') {
       if (btns[1]) btns[1].classList.add('active'); 
       const tabRep = document.getElementById('tab-report');
@@ -1517,7 +1557,7 @@
   }
 
   function triggerFileInput() {
-    acquireGPS(true);
+    startGPSBackgroundWatch();
     const fotoGiat = document.getElementById('fotoKegiatan');
     if (fotoGiat) fotoGiat.click();
   }
@@ -1547,13 +1587,14 @@
   }
 
   function resetGPSState() {
+    const btnGps = document.getElementById('btnGpsLock');
     const gpsInput = document.getElementById('gps');
     const gpsAccInput = document.getElementById('gpsAccuracy');
-    const btnGps = document.getElementById('btnGpsLock');
-
-    if (gpsInput) gpsInput.value = "";
-    if (gpsAccInput) gpsAccInput.value = "0";
-    if (btnGps) {
+    if (gpsInput && gpsInput.value && btnGps) {
+      const acc = gpsAccInput ? gpsAccInput.value : "0";
+      btnGps.disabled = false;
+      btnGps.innerHTML = `<span style="color: #34d399;">📍</span> GPS Aktif Latar Belakang (±${acc}m)`;
+    } else if (btnGps) {
       btnGps.disabled = false;
       btnGps.innerHTML = `<span style="color: var(--turquoise-blue);">📍</span> Ambil Titik Lokasi GPS`;
     }
@@ -1592,7 +1633,7 @@
     if (btnToggle) btnToggle.innerText = "📁 Mode Upload File";
     if (statusText) statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
     resetGPSState();
-    startGPSPreWarm();
+    startGPSBackgroundWatch();
 
     if (jenis === 'UK VAL BM' || jenis === 'Akad Pencairan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
       if (containerSwitch) containerSwitch.classList.remove('hidden');
@@ -1622,21 +1663,59 @@
     if (input.files && input.files[0] && status) {
       status.innerText = "✓ Foto Berhasil Dipilih!";
       status.style.color = "var(--turquoise-blue)";
-      acquireGPS(true);
+      startGPSBackgroundWatch();
     }
   }
 
-  function startGPSPreWarm() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(() => {}, () => {}, {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 10000
-      });
+  function applyGPSPositionToUI(pos) {
+    if (!pos || !pos.coords) return;
+    const lat = pos.coords.latitude.toFixed(7);
+    const lng = pos.coords.longitude.toFixed(7);
+    const accuracy = Math.round(pos.coords.accuracy);
+
+    const gpsInput = document.getElementById('gps');
+    if (gpsInput) gpsInput.value = `${lat}, ${lng}`;
+
+    const accuracyInput = document.getElementById('gpsAccuracy');
+    if (accuracyInput) accuracyInput.value = accuracy;
+
+    const btnGps = document.getElementById('btnGpsLock');
+    if (btnGps) {
+      btnGps.disabled = false;
+      btnGps.innerHTML = `<span style="color: #34d399;">📍</span> GPS Terkunci Otomatis (±${accuracy}m)`;
+    }
+  }
+
+  function startGPSBackgroundWatch() {
+    if (!navigator.geolocation) return;
+    if (gpsWatchId !== null) return;
+
+    try {
+      gpsWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          applyGPSPositionToUI(pos);
+        },
+        () => {},
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 5000
+        }
+      );
+    } catch (e) {}
+  }
+
+  function stopGPSBackgroundWatch() {
+    if (navigator.geolocation && gpsWatchId !== null) {
+      try {
+        navigator.geolocation.clearWatch(gpsWatchId);
+      } catch (e) {}
+      gpsWatchId = null;
     }
   }
 
   function acquireGPS(isAuto = false) {
+    startGPSBackgroundWatch();
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
         if (!isAuto) alert("Perangkat Anda tidak mendukung fitur Geolocation.");
@@ -1652,29 +1731,16 @@
 
       const gpsOptions = {
         enableHighAccuracy: true,
-        timeout: 7000,
-        maximumAge: 10000
+        timeout: 8000,
+        maximumAge: 5000
       };
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const lat = pos.coords.latitude.toFixed(7);
-          const lng = pos.coords.longitude.toFixed(7);
+          applyGPSPositionToUI(pos);
           const accuracy = Math.round(pos.coords.accuracy);
-
-          const gpsInput = document.getElementById('gps');
-          if (gpsInput) gpsInput.value = `${lat}, ${lng}`;
-          
-          const accuracyInput = document.getElementById('gpsAccuracy');
-          if (accuracyInput) accuracyInput.value = accuracy;
-
           if (!isAuto) {
             alert(`📍 Lokasi Berhasil Dikunci!\nAkurasi Sensor HP: ±${accuracy} meter.`);
-          }
-
-          if (btnGps) {
-            btnGps.disabled = false;
-            btnGps.innerHTML = `<span style="color: #34d399;">📍</span> GPS Terkunci Otomatis (±${accuracy}m)`;
           }
           resolve(true);
         },
@@ -1701,7 +1767,7 @@
     });
   }
 
-  function compressImage(file, maxWidth = 600, maxHeight = 600, quality = 0.45) {
+  function compressImage(file, maxWidth = 640, maxHeight = 640, quality = 0.48) {
     return new Promise((resolve) => {
       const reader = new FileReader(); 
       reader.readAsDataURL(file);
@@ -1721,7 +1787,11 @@
           canvas.height = height;
           const ctx = canvas.getContext('2d'); 
           ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality)); 
+          let dataUrl = canvas.toDataURL('image/jpeg', quality);
+          if (dataUrl.length > 260000) {
+            dataUrl = canvas.toDataURL('image/jpeg', 0.35);
+          }
+          resolve(dataUrl); 
         };
         img.onerror = () => resolve("");
       };
@@ -1800,11 +1870,12 @@
         };
 
         if (navigator.onLine) {
+          inFlightClientIds.add(payload.clientId);
           try {
             const result = await safeFetchJson(SCRIPT_URL, { 
               method: 'POST', 
               body: JSON.stringify(payload) 
-            }, 25000);
+            }, 30000);
 
             if (result.status === "success" || result.status === "duplicate_ignored") {
               markClientIdAsSent(payload.clientId);
@@ -1816,6 +1887,8 @@
           } catch (networkErr) {
             await saveOfflineReportDB(payload);
             alert("⚠️ Sinyal terputus saat mengirim. Laporan otomatis disimpan di Antrean Offline!");
+          } finally {
+            inFlightClientIds.delete(payload.clientId);
           }
         } else {
           await saveOfflineReportDB(payload);
@@ -1849,7 +1922,7 @@
   async function processOfflineQueue(isManual = false) {
     if (isSyncing) {
       if (isManual) {
-        alert("⏳ Pembaruan data sedang berjalan. Mohon tunggu hingga selesai.");
+        alert("⏳ Sinkronisasi sedang berjalan. Mohon tunggu hingga selesai.");
       }
       return;
     }
@@ -1907,20 +1980,28 @@
 
     try {
       const snapshotQueue = [...offlineData];
+      const serverClientIds = new Set(
+        (allReports || []).map(r => String(r.clientId || '').trim()).filter(Boolean)
+      );
 
       for (let item of snapshotQueue) {
         const itemId = item.clientId || `${item.namaPetugas}_${item.waktuKegiatan}_${item.jenisKegiatan}`;
 
-        if (isClientIdAlreadySent(itemId)) {
+        if (isClientIdAlreadySent(itemId) || serverClientIds.has(itemId)) {
           await removeOfflineReportDB(itemId);
           continue;
         }
 
+        if (inFlightClientIds.has(itemId)) {
+          continue;
+        }
+
+        inFlightClientIds.add(itemId);
         try {
           const result = await safeFetchJson(SCRIPT_URL, { 
             method: 'POST', 
             body: JSON.stringify(item) 
-          }, 25000);
+          }, 30000);
 
           if (result.status === "success" || result.status === "duplicate_ignored") {
             markClientIdAsSent(itemId);
@@ -1934,10 +2015,12 @@
           if (textEl) textEl.innerText = `Menyinkronkan... (Sisa: ${remainingList.length})`;
         } catch (e) { 
           failCount++;
+        } finally {
+          inFlightClientIds.delete(itemId);
         }
       }
 
-      if (sentCount > 0) {
+      if (sentCount > 0 || isManual) {
         await fetchBackgroundData();
       }
 
@@ -1957,11 +2040,15 @@
 
   async function fetchBackgroundData() {
     try {
-      const json = await safeFetchJson(SCRIPT_URL + "?limit=2000&_t=" + new Date().getTime(), {}, 18000);
+      const json = await safeFetchJson(SCRIPT_URL + "?limit=2000&_t=" + new Date().getTime(), {}, 20000);
       allReports = json.data || [];
       onlineTargets = json.targets || {};
+
+      allReports.forEach(r => {
+        if (r.clientId) markClientIdAsSent(String(r.clientId).trim());
+      });
       
-      safeStorageSet('cached_reports', JSON.stringify(allReports.slice(0, 200)));
+      saveCachedReportsCompact(allReports);
       safeStorageSet('cached_targets', JSON.stringify(onlineTargets));
       
       await triggerFilterReport();
@@ -2130,7 +2217,7 @@
             }
           });
 
-          safeStorageSet('cached_reports', JSON.stringify(allReports.slice(0, 200)));
+          saveCachedReportsCompact(allReports);
 
           closeEditModal();
           await triggerFilterReport();
@@ -2158,30 +2245,7 @@
 
     const item = { ...rawItem };
     const jenis = (item.jenisKegiatan || '').trim();
-    const waktuStr = formatReadableDateTime(item.waktuKegiatan);
     const oldKet = item.keteranganKegiatan || item.keterangan || "";
-
-    const langkah1 = confirm(
-      `⚠️ KONFIRMASI PENGHAPUSAN LAPORAN (1/2)\n\n` +
-      `• Petugas: ${item.namaPetugas}\n` +
-      `• Kegiatan: ${jenis}\n` +
-      `• Waktu: ${waktuStr}\n\n` +
-      `Data akan dihapus dari Riwayat & Analisa (riwayat penghapusan tetap tercatat di sheet Log_Hapus). Lanjutkan?`
-    );
-
-    if (!langkah1) return;
-
-    const ketikKonfirmasi = prompt(
-      `⚠️ KONFIRMASI AKHIR (2/2)\n\n` +
-      `Untuk menghindari salah hapus, ketik kata HAPUS (huruf besar) lalu tekan OK:`
-    );
-
-    if (ketikKonfirmasi === null || ketikKonfirmasi.trim().toUpperCase() !== "HAPUS") {
-      if (ketikKonfirmasi !== null) {
-        alert("❌ Penghapusan dibatalkan karena kata konfirmasi tidak sesuai.");
-      }
-      return;
-    }
 
     if (item.isOfflinePending) {
       const itemId = item.clientId || `${item.namaPetugas}_${item.waktuKegiatan}_${item.jenisKegiatan}`;
@@ -2189,7 +2253,6 @@
       await updateOfflineQueueCounter();
       await triggerFilterReport();
       await triggerRenderAnalisa();
-      alert("🗑️ Laporan di antrean offline berhasil dihapus.");
       return;
     }
 
@@ -2205,7 +2268,7 @@
       btnEl.innerText = "⏳";
     }
     if (syncTextEl) {
-      syncTextEl.innerText = "⏳ Menghapus & mencatat ke Log_Hapus...";
+      syncTextEl.innerText = "⏳ Menghapus & memindahkan ke Log_Hapus...";
     }
 
     try {
@@ -2228,11 +2291,10 @@
 
       if (result.status === "deleted") {
         allReports = allReports.filter(r => !isSameReportRecord(r, item));
-        safeStorageSet('cached_reports', JSON.stringify(allReports.slice(0, 200)));
+        saveCachedReportsCompact(allReports);
 
         await triggerFilterReport();
         await triggerRenderAnalisa();
-        alert("🗑️ Laporan berhasil dihapus & dicatat ke sheet Log_Hapus!");
       } else if (result.status === "forbidden") {
         alert("⛔ Akses ditolak: Anda tidak memiliki izin menghapus laporan ini.");
       } else {
@@ -2362,6 +2424,14 @@
     await renderAnalisa(combinedData);
   }
 
+  function isBMReportOrOfficer(r) {
+    if (!r) return true;
+    const pName = (r.namaPetugas || '').trim().toLowerCase();
+    const jenis = (r.jenisKegiatan || '').trim().toUpperCase();
+    if (pName === 'zidan' || jenis === 'UK VAL BM') return true;
+    return false;
+  }
+
   async function renderAnalisa(reportsData) {
     if (!reportsData) {
        const offlineData = (currentUser && currentUser.role === 'VIEWER') ? [] : await getAllOfflineReports();
@@ -2379,7 +2449,7 @@
     const analThn = document.getElementById('analisaTahun');
     const tahunan = analThn ? analThn.value : "";
 
-    let filtered = reportsData;
+    let filtered = reportsData.filter(r => !isBMReportOrOfficer(r));
     let labelPeriode = "Sepanjang Waktu";
     let tipeWaktu = "Sepanjang Waktu";
     let nilaiWaktu = "Semua";
@@ -2430,7 +2500,6 @@
     let countPencairan = 0;
 
     let counts = { 
-      'UK VAL BM': 0,
       'Uji Kelayakan': 0, 
       'Akad Pencairan': 0, 
       'Hasil Penagihan PAR': 0, 
@@ -2440,9 +2509,8 @@
       'Door to door': 0 
     };
 
-    const listStafOperasional = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
     let petugasStats = {};
-    listStafOperasional.forEach(p => {
+    LIST_STAF_BP.forEach(p => {
       petugasStats[p] = {
         disbursement: 0,
         proyeksi: 0,
@@ -2462,7 +2530,7 @@
       let p = parseCleanNumber(r.plafond);
       let pName = (r.namaPetugas || '').trim();
 
-      if (pName && !petugasStats[pName]) {
+      if (pName && pName.toLowerCase() !== 'zidan' && !petugasStats[pName]) {
         petugasStats[pName] = { disbursement: 0, proyeksi: 0, proyeksiNTB: 0, proyeksiETB: 0, penagihan: 0, penagihanCount: 0, akadNTB: 0, akadETB: 0 };
       }
 
@@ -2531,10 +2599,10 @@
 
       grafikPetugasHtml += `
         <div class="chart-container">
-          <div class="chart-title">📊 Rincian & Grafik Kontribusi Tim</div>
+          <div class="chart-title">📊 Rincian & Grafik Kontribusi Tim BP</div>
       `;
 
-      listStafOperasional.forEach(pName => {
+      LIST_STAF_BP.forEach(pName => {
         let st = petugasStats[pName] || { disbursement: 0, proyeksi: 0, proyeksiNTB: 0, proyeksiETB: 0, penagihan: 0, penagihanCount: 0, akadNTB: 0, akadETB: 0 };
         let val = 0;
         let subInfo = "";
@@ -2580,7 +2648,7 @@
       </div>
     `;
 
-    const colors = ['#a855f7', '#00bcd4', '#34d399', '#f59e0b', '#7c2d96', '#38bdf8', '#ef4444', '#94a3b8'];
+    const colors = ['#a855f7', '#00bcd4', '#34d399', '#f59e0b', '#7c2d96', '#38bdf8', '#ef4444'];
     let colorIndex = 0;
 
     htmlContent += `<h4 style="font-size:11px; color:var(--turquoise-blue); margin-bottom:8px; margin-top:14px; text-transform:uppercase; font-weight:800;">KOMPOSISI KEGIATAN & TARGET KPI ONLINE</h4>`;
@@ -2847,13 +2915,13 @@
       note.style.color = "var(--text-muted)";
       note.style.padding = "8px";
       note.style.width = "100%";
-      note.innerText = `Menampilkan ${maxRender} laporan terbaru. Gunakan filter untuk pencarian spesifik.`;
+      note.innerText = `Menampilkan ${maxRender} dari ${reports.length} laporan terbaru. Gunakan filter untuk pencarian spesifik.`;
       container.appendChild(note);
     }
   }
 
   function populatePetugasDropdown() {
-    const listSemuaPetugas = ["Zidan", "Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
+    const listSemuaPetugas = ["Zidan", ...LIST_STAF_BP];
     
     const selectRiwayat = document.getElementById("filterPetugas");
     const selectAnalisa = document.getElementById("analisaPetugas");
@@ -2866,8 +2934,8 @@
     }
 
     if (selectAnalisa) {
-      selectAnalisa.innerHTML = `<option value="">Semua Petugas (Keseluruhan Tim)</option>`;
-      listSemuaPetugas.forEach(p => {
+      selectAnalisa.innerHTML = `<option value="">Semua Staf BP (Keseluruhan Tim)</option>`;
+      LIST_STAF_BP.forEach(p => {
         selectAnalisa.innerHTML += `<option value="${p}">${p}</option>`;
       });
     }
