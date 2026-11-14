@@ -50,7 +50,6 @@
       overflow-x: hidden;
     }
 
-    /* HEADER BANNER */
     .header {
       position: relative;
       text-align: center;
@@ -66,7 +65,6 @@
     .header h1 { font-size: 13px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px; }
     .header p { font-size: 10px; opacity: 0.9; font-weight: 500; }
 
-    /* USER SESSION BAR */
     .user-session-bar {
       display: flex; justify-content: space-between; align-items: center;
       background: rgba(124, 45, 150, 0.16); border: 1px solid rgba(124, 45, 150, 0.35);
@@ -83,7 +81,6 @@
       padding: 4px 8px; border-radius: 6px; font-size: 9px; font-weight: 800; cursor: pointer;
     }
 
-    /* SYNC BAR & OFFLINE INDICATOR */
     .sync-bar {
       display: flex; justify-content: space-between; align-items: center;
       background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-glass);
@@ -103,7 +100,6 @@
     }
     .offline-indicator.active { display: block; }
 
-    /* NAV TABS */
     .nav-tabs {
       display: flex; gap: 6px; margin-bottom: 14px;
       background: rgba(255, 255, 255, 0.04); padding: 4px; border-radius: 12px;
@@ -119,7 +115,6 @@
       color: #ffffff; box-shadow: 0 4px 12px var(--amartha-purple-glow);
     }
 
-    /* AUTH SCREEN */
     .auth-wrapper {
       width: 100%; max-width: 420px; background: var(--bg-card);
       backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
@@ -152,7 +147,6 @@
     }
     .btn-viewer-mode:hover { background: rgba(0, 188, 212, 0.22); }
 
-    /* FORM STYLES */
     .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
@@ -192,7 +186,6 @@
     }
     .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* FILTER & SUMMARY */
     .filter-box { background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-glass); padding: 10px; border-radius: var(--radius-md); margin-bottom: 12px; }
     .filter-row { display: flex; gap: 6px; align-items: flex-end; }
     .filter-item { flex: 1; }
@@ -208,7 +201,6 @@
     .summary-card h4 { font-size: 6.5px; color: var(--turquoise-blue); text-transform: uppercase; font-weight: 800; margin-bottom: 2px; text-align: center; }
     .summary-card p { font-size: 10.5px; font-weight: 850; color: #ffffff; }
 
-    /* REPORT GRID & CARD STYLING */
     .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
     .card-item {
       background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm);
@@ -222,7 +214,6 @@
     .badge-sync { background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 1px 3px; border-radius: 4px; font-size: 6.5px; font-weight: 800; }
     .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 1px 3px; border-radius: 4px; font-size: 6.5px; font-weight: 800; }
     
-    /* IKON HAPUS KECIL DI POJOK KANAN ATAS CARD */
     .btn-card-del-top {
       background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3);
       color: #f87171; width: 18px; height: 18px; border-radius: 4px; font-size: 9px;
@@ -246,7 +237,6 @@
       background: rgba(255, 255, 255, 0.03); padding: 3px; border-radius: 4px; width: 100%;
     }
 
-    /* ANALISA DASHBOARD */
     .analisa-card-main {
       background: linear-gradient(135deg, rgba(74, 21, 75, 0.75) 0%, rgba(27, 54, 93, 0.85) 100%);
       color: white; padding: 20px 12px; border-radius: var(--radius-md); margin-bottom: 16px; text-align: center;
@@ -281,7 +271,6 @@
     .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(0, 188, 212, 0.3); border-radius: 50%; border-top-color: var(--turquoise-blue); animation: spin 1s ease-in-out infinite; margin-top: 20px;}
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* MODALS */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 16, 0.88); display: none; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(5px); padding: 12px; }
     .modal-overlay.active { display: flex !important; }
     .modal-content { background: #141726; border: 1px solid var(--border-glass); padding: 10px; border-radius: var(--radius-md); max-width: 88vw; max-height: 75vh; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.7); }
@@ -298,9 +287,6 @@
 </head>
 <body>
 
-<!-- =================================================================
-     LAYAR LOGIN / DAFTAR PIN / AKSES UNTUK UMUM
-     ================================================================= -->
 <div id="authScreen" class="auth-wrapper hidden">
   <div class="header" style="margin-bottom: 14px; padding: 16px 12px;">
     <h1>BPARS DUSUN SELATAN</h1>
@@ -312,7 +298,6 @@
     <button type="button" id="btnAuthTabRegister" class="auth-tab-btn" onclick="switchAuthMode('register')">📝 Daftar PIN Baru</button>
   </div>
 
-  <!-- FORM MASUK (LOGIN PIN) -->
   <form id="loginPinForm">
     <div class="form-group">
       <label>Pilih Nama Petugas</label>
@@ -333,12 +318,8 @@
     </div>
 
     <button type="submit" id="btnLoginSubmit" class="btn-submit">Masuk ke Aplikasi</button>
-    <p style="font-size: 9px; color: var(--text-muted); text-align: center; margin-top: 8px; line-height: 1.4;">
-      Belum pernah membuat PIN? Klik tab <b>Daftar PIN Baru</b> di atas.
-    </p>
   </form>
 
-  <!-- FORM DAFTAR PIN BARU (1 KALI SAJA) -->
   <form id="registerPinForm" class="hidden">
     <div class="form-group">
       <label>Pilih Nama Petugas</label>
@@ -364,26 +345,15 @@
     </div>
 
     <button type="submit" id="btnRegisterSubmit" class="btn-submit">Simpan PIN & Masuk</button>
-    <p style="font-size: 9px; color: #fbbf24; text-align: center; margin-top: 8px; line-height: 1.4;">
-      ⚠️ Pendaftaran PIN hanya bisa dilakukan 1 kali.<br>
-      Ingat baik-baik PIN Anda (jika lupa, hubungi BM Zidan).
-    </p>
   </form>
 
-  <!-- AKSES UNTUK UMUM -->
   <div class="viewer-access-box">
     <button type="button" class="btn-viewer-mode" onclick="enterViewerMode()">
       🌐 Akses untuk Umum
     </button>
-    <p style="font-size: 8.5px; color: var(--text-muted); margin-top: 5px; line-height: 1.35;">
-      Untuk pengguna non-petugas atau yang belum login akun. Langsung lihat <b>Riwayat</b> & <b>Analisa Data</b> (Hanya Lihat).
-    </p>
   </div>
 </div>
 
-<!-- =================================================================
-     APLIKASI UTAMA BPARS
-     ================================================================= -->
 <div id="mainAppContainer" class="app-container hidden">
   <div class="header">
     <div class="header-content">
@@ -392,7 +362,6 @@
     </div>
   </div>
 
-  <!-- BAR IDENTITAS AKUN -->
   <div class="user-session-bar">
     <div>
       <span id="sessionUserDisplay" style="font-weight: 800; color: #ffffff;">👤 -</span>
@@ -401,7 +370,6 @@
     <button type="button" id="btnLogoutAccount" class="btn-logout" onclick="logoutAccount()">🚪 Keluar</button>
   </div>
 
-  <!-- KONTROL REFRESH & STATUS SINKRONISASI OFFLINE -->
   <div class="sync-bar">
     <span id="syncStatusText">Antrean Offline: 0 laporan</span>
     <button type="button" id="btnManualSync" class="sync-btn" onclick="manualSyncNow()">🔄 Sinkronkan Sekarang</button>
@@ -409,14 +377,12 @@
 
   <div id="offlineIndicator" class="offline-indicator">⚠️ Mode Offline: Laporan disimpan sementara di perangkat</div>
 
-  <!-- NAVIGATION TABS -->
   <div class="nav-tabs">
     <button type="button" id="navTabInput" class="tab-btn active" onclick="switchTab('input')">Input Laporan</button>
     <button type="button" id="navTabReport" class="tab-btn" onclick="switchTab('report')">Riwayat</button>
     <button type="button" id="navTabAnalisa" class="tab-btn" onclick="switchTab('analisa')">Analisa Data</button>
   </div>
 
-  <!-- MENU 1: INPUT LAPORAN -->
   <div id="tab-input" class="tab-content">
     <form id="reportForm">
       <div class="form-grid-2">
@@ -519,7 +485,6 @@
     </form>
   </div>
 
-  <!-- MENU 2: RIWAYAT LAPORAN -->
   <div id="tab-report" class="tab-content hidden">
     <h3 style="margin-bottom: 6px; color: var(--turquoise-blue); font-size: 11.5px; font-weight: 800;">Riwayat Laporan Masuk</h3>
 
@@ -583,7 +548,6 @@
     </div>
   </div>
 
-  <!-- MENU 3: ANALISA DATA -->
   <div id="tab-analisa" class="tab-content hidden">
     <h3 style="margin-bottom: 6px; color: var(--turquoise-blue); font-size: 11.5px; font-weight: 800;">Analisa & Target Rekapitulasi</h3>
 
@@ -632,18 +596,16 @@
 
 </div>
 
-<!-- MODAL FOTO -->
 <div id="photoModal" class="modal-overlay" onclick="closeModal()">
   <div class="modal-content" onclick="event.stopPropagation()">
-    <button type="button" class="modal-close" onclick="closeModal()">×</button>
+    <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
     <img id="modalImg" src="">
   </div>
 </div>
 
-<!-- MODAL EDIT LAPORAN -->
 <div id="editModal" class="modal-overlay" onclick="closeEditModal()">
   <div class="modal-content edit-modal-box" onclick="event.stopPropagation()">
-    <button type="button" class="modal-close" onclick="closeEditModal()">×</button>
+    <button type="button" class="modal-close" onclick="closeEditModal()">&times;</button>
     <h3 style="font-size: 13px; font-weight: 800; color: var(--turquoise-blue); margin-bottom: 8px;">✏️ Koreksi Detail Laporan</h3>
     
     <div class="edit-readonly-info">
@@ -727,11 +689,11 @@
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
     return String(str)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """)
-      .replace(/'/g, "'");
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   const OFFLINE_DB_NAME = 'bpars_offline_db';
@@ -1782,7 +1744,6 @@
     const waktuStr = formatReadableDateTime(item.waktuKegiatan);
     const oldKet = item.keteranganKegiatan || item.keterangan || "";
 
-    // Konfirmasi Tahap 1
     const langkah1 = confirm(
       `⚠️ KONFIRMASI PENGHAPUSAN LAPORAN (1/2)\n\n` +
       `• Petugas: ${item.namaPetugas}\n` +
@@ -1793,7 +1754,6 @@
 
     if (!langkah1) return;
 
-    // Konfirmasi Tahap 2: Wajib ketik HAPUS
     const ketikKonfirmasi = prompt(
       `⚠️ KONFIRMASI AKHIR (2/2)\n\n` +
       `Untuk menghindari salah hapus, ketik kata HAPUS (huruf besar) lalu tekan OK:`
@@ -2379,7 +2339,6 @@
       let readableTime = formatReadableDateTime(item.waktuKegiatan);
       let ketTeks = escapeHtml(item.keteranganKegiatan || item.keterangan || "");
 
-      // TOMBOL HAPUS DI POJOK KANAN ATAS & TOMBOL EDIT FULL DI BAWAH
       let deleteBtnTopHtml = canUserModifyReport(item)
         ? `<button type="button" class="btn-card-del-top" title="Hapus Laporan" aria-label="Hapus Laporan" onclick="confirmDeleteReport(${idx})">🗑️</button>`
         : '';
