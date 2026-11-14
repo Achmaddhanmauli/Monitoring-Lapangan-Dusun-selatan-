@@ -119,7 +119,7 @@
       color: #ffffff; box-shadow: 0 4px 12px var(--amartha-purple-glow);
     }
 
-    /* AUTH SCREEN (LOGIN, DAFTAR PIN & MODE MONITORING) */
+    /* AUTH SCREEN (LOGIN, DAFTAR PIN & AKSES UNTUK UMUM) */
     .auth-wrapper {
       width: 100%; max-width: 420px; background: var(--bg-card);
       backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
@@ -291,12 +291,12 @@
 <body>
 
 <!-- =================================================================
-     LAYAR LOGIN / DAFTAR PIN / MODE MONITORING AM & REGIONAL
+     LAYAR LOGIN / DAFTAR PIN / AKSES UNTUK UMUM
      ================================================================= -->
 <div id="authScreen" class="auth-wrapper hidden">
   <div class="header" style="margin-bottom: 14px; padding: 16px 12px;">
     <h1>BPARS DUSUN SELATAN</h1>
-    <p>Verifikasi Akun Petugas & Monitoring Manajemen</p>
+    <p>Verifikasi Akun Petugas & Akses Umum</p>
   </div>
 
   <div class="auth-tabs">
@@ -362,19 +362,19 @@
     </p>
   </form>
 
-  <!-- AKSES KHUSUS MONITORING (AREA MANAGER / REGIONAL / TAMU) -->
+  <!-- AKSES UNTUK UMUM (NON-PETUGAS / BELUM LOGIN AKUN) -->
   <div class="viewer-access-box">
     <button type="button" class="btn-viewer-mode" onclick="enterViewerMode()">
-      👁️ Masuk Mode Monitoring (AM / Regional)
+      🌐 Akses untuk Umum
     </button>
     <p style="font-size: 8.5px; color: var(--text-muted); margin-top: 5px; line-height: 1.35;">
-      Akses langsung tanpa PIN untuk melihat <b>Riwayat</b> & <b>Analisa Data</b> cabang (Hanya Lihat).
+      Untuk pengguna non-petugas atau yang belum login akun. Langsung lihat <b>Riwayat</b> & <b>Analisa Data</b> (Hanya Lihat).
     </p>
   </div>
 </div>
 
 <!-- =================================================================
-     APLIKASI UTAMA BPARS (MUNCUL SETELAH LOGIN ATAU MODE MONITORING)
+     APLIKASI UTAMA BPARS (MUNCUL SETELAH LOGIN ATAU AKSES UMUM)
      ================================================================= -->
 <div id="mainAppContainer" class="app-container hidden">
   <div class="header">
@@ -713,7 +713,7 @@
   }
 
   /* ==============================================================
-     MANAJEMEN SESI LOGIN, DAFTAR PIN & MODE MONITORING
+     MANAJEMEN SESI LOGIN, DAFTAR PIN & AKSES UNTUK UMUM
      ============================================================== */
   function loadSavedSession() {
     try {
@@ -739,7 +739,7 @@
   }
 
   function enterViewerMode() {
-    saveUserSession("AM / Regional", "VIEWER");
+    saveUserSession("Pengguna Umum", "VIEWER");
     applySessionToAppUI();
     initializeAppDataAfterLogin();
     switchTab('analisa');
@@ -777,7 +777,7 @@
     const isBM = currentUser.role === 'BM';
     const isViewer = currentUser.role === 'VIEWER';
 
-    const icon = isBM ? '👑' : (isViewer ? '👁️' : '👤');
+    const icon = isBM ? '👑' : (isViewer ? '🌐' : '👤');
     document.getElementById('sessionUserDisplay').innerText = `${icon} ${currentUser.namaPetugas}`;
     
     const badge = document.getElementById('sessionRoleBadge');
@@ -785,7 +785,7 @@
     const navTabInput = document.getElementById('navTabInput');
 
     if (isViewer) {
-      badge.innerText = 'Monitoring (Hanya Lihat)';
+      badge.innerText = 'Akses Umum (Hanya Lihat)';
       badge.className = 'role-badge role-viewer';
       btnLogout.innerText = '🔑 Login Petugas';
       if (navTabInput) navTabInput.classList.add('hidden');
@@ -1483,7 +1483,7 @@
   }
 
   /* ==============================================================
-     FITUR EDIT & HAPUS LAPORAN (BM vs STAF BP vs VIEWER)
+     FITUR EDIT & HAPUS LAPORAN (BM vs STAF BP vs AKSES UMUM)
      ============================================================== */
   function canUserModifyReport(item) {
     if (!currentUser || !item) return false;
