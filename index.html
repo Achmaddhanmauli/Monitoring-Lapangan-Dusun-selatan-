@@ -855,7 +855,7 @@
     return (
       String(a.namaPetugas || '').trim().toLowerCase() === String(b.namaPetugas || '').trim().toLowerCase() &&
       String(a.jenisKegiatan || '').trim() === String(b.jenisKegiatan || '').trim() &&
-      String(a.waktuKegiatan || '').trim() === String(b.waktuKegiatan || '').trim() &&
+      extractYYYYMMDD(a.waktuKegiatan) === extractYYYYMMDD(b.waktuKegiatan) &&
       String(a.fotoUrl || '').trim() === String(b.fotoUrl || '').trim()
     );
   }
@@ -1220,29 +1220,134 @@
     return `${y}-${m}-${d}`;
   }
 
-  function extractYYYYMMDD(str) {
-    if (!str) return "";
-    str = String(str).trim();
-    
-    let matchISO = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-    if (matchISO) {
-      return `${matchISO[1]}-${matchISO[2].padStart(2, '0')}-${matchISO[3].padStart(2, '0')}`;
-    }
-    
-    let matchIndo = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
-    if (matchIndo) {
-      return `${matchIndo[3]}-${matchIndo[2].padStart(2, '0')}-${matchIndo[1].padStart(2, '0')}`;
+  const MONTH_NAME_MAP = {
+    jan: '01', januari: '01', january: '01',
+    feb: '02', februari: '02', february: '02',
+    mar: '03', maret: '03', march: '03',
+    apr: '04', april: '04',
+    mei: '05', may: '05',
+    jun: '06', juni: '06', june: '06',
+    jul: '07', juli: '07', july: '07',
+    agt: '08', agu: '08', agustus: '08', aug: '08', august: '08',
+    sep: '09', sept: '09', september: '09',
+    okt: '10', oktober: '10', oct: '10', october: '10',
+    nov: '11', november: '11',
+    des: '12', desember: '12', dec: '12', december: '12'
+  };
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function isValidYMD(y, m, d) {
+    const yi = parseInt(y, 10);
+    const mi = parseInt(m, 10);
+    const di = parseInt(d, 10);
+    if (yi < 2000 || yi > 2100 || mi < 1 || mi > 12 || di < 1 || di > 31) return false;
+    const dt = new Date(yi, mi - 1, di);
+    return dt.getFullYear() === yi && (dt.getMonth() + 1) === mi && dt.getDate() === di;
+  }
+
+  function parseAnyDateToParts(val) {
+    if (val === null || val === undefined || val === "") return null;
+
+    if (val instanceof Date && !isNaN(val.getTime())) {
+      return {
+        y: String(val.getFullYear()),
+        m: pad2(val.getMonth() + 1),
+        d: pad2(val.getDate()),
+        hh: pad2(val.getHours()),
+        mm: pad2(val.getMinutes())
+      };
     }
 
-    let dObj = new Date(str);
+    if (typeof val === 'number' && val > 25000 && val < 90000) {
+      const utcMs = Math.round((val - 25569) * 86400 * 1000);
+      const dt = new Date(utcMs);
+      if (!isNaN(dt.getTime())) {
+        return {
+          y: String(dt.getUTCFullYear()),
+          m: pad2(dt.getUTCMonth() + 1),
+          d: pad2(dt.getUTCDate()),
+          hh: pad2(dt.getUTCHours()),
+          mm: pad2(dt.getUTCMinutes())
+        };
+      }
+    }
+
+    const str = String(val).replace(/^'+/, "").replace(/,/g, " ").replace(/\s+/g, " ").trim();
+    if (!str) return null;
+
+    const timeMatch = str.match(/(?:T|\s)(\d{1,2})[:.](\d{2})/);
+    const hh = timeMatch ? pad2(timeMatch[1]) : "";
+    const mm = timeMatch ? pad2(timeMatch[2]) : "";
+
+    let m1 = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if (m1 && isValidYMD(m1[1], m1[2], m1[3])) {
+      return { y: m1[1], m: pad2(m1[2]), d: pad2(m1[3]), hh, mm };
+    }
+
+    let m2 = str.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+    if (m2) {
+      const p1 = parseInt(m2[1], 10);
+      const p2 = parseInt(m2[2], 10);
+      const y = m2[3];
+      if (p1 > 12 && isValidYMD(y, p2, p1)) {
+        return { y, m: pad2(p2), d: pad2(p1), hh, mm };
+      }
+      if (p2 > 12 && isValidYMD(y, p1, p2)) {
+        return { y, m: pad2(p1), d: pad2(p2), hh, mm };
+      }
+      if (isValidYMD(y, p2, p1)) {
+        return { y, m: pad2(p2), d: pad2(p1), hh, mm };
+      }
+    }
+
+    let m3 = str.match(/^(\d{1,2})[\s\-/.]([A-Za-z]+)[\s\-/.](\d{4})/);
+    if (m3) {
+      const monNum = MONTH_NAME_MAP[m3[2].toLowerCase()];
+      if (monNum && isValidYMD(m3[3], monNum, m3[1])) {
+        return { y: m3[3], m: monNum, d: pad2(m3[1]), hh, mm };
+      }
+    }
+
+    let m4 = str.match(/^([A-Za-z]+)[\s\-/.](\d{1,2})[\s\-/.](\d{4})/);
+    if (m4) {
+      const monNum = MONTH_NAME_MAP[m4[1].toLowerCase()];
+      if (monNum && isValidYMD(m4[3], monNum, m4[2])) {
+        return { y: m4[3], m: monNum, d: pad2(m4[2]), hh, mm };
+      }
+    }
+
+    const dObj = new Date(str);
     if (!isNaN(dObj.getTime())) {
-      let y = dObj.getFullYear();
-      let m = String(dObj.getMonth() + 1).padStart(2, '0');
-      let d = String(dObj.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+      return {
+        y: String(dObj.getFullYear()),
+        m: pad2(dObj.getMonth() + 1),
+        d: pad2(dObj.getDate()),
+        hh: pad2(dObj.getHours()),
+        mm: pad2(dObj.getMinutes())
+      };
     }
 
-    return "";
+    return null;
+  }
+
+  function extractYYYYMMDD(str) {
+    const parts = parseAnyDateToParts(str);
+    if (!parts) return "";
+    return `${parts.y}-${parts.m}-${parts.d}`;
+  }
+
+  function matchReportDateWithFilter(item, targetYYYYMMDD) {
+    if (!targetYYYYMMDD) return true;
+    const dGiat = extractYYYYMMDD(item.waktuKegiatan);
+    const dServer = extractYYYYMMDD(item.timestampServer);
+    return (dGiat === targetYYYYMMDD) || (dServer === targetYYYYMMDD);
+  }
+
+  function getBestReportDateYMD(item) {
+    return extractYYYYMMDD(item.waktuKegiatan) || extractYYYYMMDD(item.timestampServer);
   }
 
   async function initializeAppDataAfterLogin(waitForFetch = false) {
@@ -1628,22 +1733,13 @@
 
   function formatReadableDateTime(dateString) {
     if (!dateString) return "";
-    try {
-      let cleanStr = String(dateString).replace(" ", "T");
-      let d = new Date(cleanStr);
-      if (isNaN(d.getTime())) return dateString;
+    const parts = parseAnyDateToParts(dateString);
+    if (!parts) return String(dateString);
 
-      let day = String(d.getDate()).padStart(2, '0');
-      let months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
-      let month = months[d.getMonth()];
-      let year = d.getFullYear();
-      let hours = String(d.getHours()).padStart(2, '0');
-      let minutes = String(d.getMinutes()).padStart(2, '0');
-
-      return `${day} ${month} ${year}, ${hours}:${minutes}`;
-    } catch (e) {
-      return dateString;
-    }
+    const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+    const monthName = months[parseInt(parts.m, 10) - 1] || parts.m;
+    const timePart = (parts.hh && parts.mm) ? `, ${parts.hh}:${parts.mm}` : "";
+    return `${parts.d} ${monthName} ${parts.y}${timePart}`;
   }
 
   const reportForm = document.getElementById('reportForm');
@@ -2170,9 +2266,14 @@
     return url;
   }
 
-  function getISOWeekString(date) {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  function getISOWeekString(ymdStr) {
+    if (!ymdStr) return "";
+    const parts = ymdStr.split('-');
+    if (parts.length !== 3) return "";
+    const d = new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
+    if (isNaN(d.getTime())) return "";
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
     const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     return d.getUTCFullYear() + '-W' + (weekNo < 10 ? '0' : '') + weekNo;
@@ -2289,19 +2390,16 @@
     }
     
     if (harian) { 
-      filtered = filtered.filter(r => {
-        let dateGiat = extractYYYYMMDD(r.waktuKegiatan);
-        let dateServer = extractYYYYMMDD(r.timestampServer);
-        return (dateGiat === harian) || (dateServer === harian);
-      }); 
+      filtered = filtered.filter(r => matchReportDateWithFilter(r, harian)); 
       tipeWaktu = "Harian"; 
       nilaiWaktu = harian; 
       labelPeriode = `Harian: ${harian}`; 
     }
     else if (mingguan) { 
       filtered = filtered.filter(r => {
-        let dateGiat = extractYYYYMMDD(r.waktuKegiatan);
-        return dateGiat && getISOWeekString(new Date(dateGiat)) === mingguan;
+        const ymdGiat = extractYYYYMMDD(r.waktuKegiatan);
+        const ymdServer = extractYYYYMMDD(r.timestampServer);
+        return (ymdGiat && getISOWeekString(ymdGiat) === mingguan) || (ymdServer && getISOWeekString(ymdServer) === mingguan);
       }); 
       tipeWaktu = "Mingguan"; 
       nilaiWaktu = mingguan; 
@@ -2309,8 +2407,8 @@
     }
     else if (bulanan) { 
       filtered = filtered.filter(r => {
-        let dateGiat = extractYYYYMMDD(r.waktuKegiatan);
-        return dateGiat && dateGiat.startsWith(bulanan);
+        const ymd = getBestReportDateYMD(r);
+        return ymd && ymd.startsWith(bulanan);
       }); 
       tipeWaktu = "Bulanan"; 
       nilaiWaktu = bulanan; 
@@ -2318,8 +2416,8 @@
     }
     else if (tahunan) { 
       filtered = filtered.filter(r => {
-        let dateGiat = extractYYYYMMDD(r.waktuKegiatan);
-        return dateGiat && dateGiat.startsWith(tahunan);
+        const ymd = getBestReportDateYMD(r);
+        return ymd && ymd.startsWith(tahunan);
       }); 
       tipeWaktu = "Tahunan"; 
       nilaiWaktu = tahunan; 
@@ -2606,14 +2704,7 @@
 
     const baseFiltered = reportsData.filter(item => {
       const matchPetugas = !selectedPetugas || (item.namaPetugas && item.namaPetugas.trim().toLowerCase() === selectedPetugas);
-      
-      let matchTanggal = true;
-      if (selectedTanggal) {
-        let dateGiat = extractYYYYMMDD(item.waktuKegiatan);
-        let dateServer = extractYYYYMMDD(item.timestampServer);
-        matchTanggal = (dateGiat === selectedTanggal) || (dateServer === selectedTanggal);
-      }
-
+      const matchTanggal = matchReportDateWithFilter(item, selectedTanggal);
       return matchPetugas && matchTanggal;
     });
 
@@ -2710,7 +2801,7 @@
         ? `<span class="badge-pending" title="Menunggu Sinkronisasi">⏳</span>` 
         : `<span class="badge-sync">✓</span>`;
 
-      let readableTime = formatReadableDateTime(item.waktuKegiatan);
+      let readableTime = formatReadableDateTime(item.waktuKegiatan || item.timestampServer);
       let ketTeks = escapeHtml(item.keteranganKegiatan || item.keterangan || "");
 
       let deleteBtnTopHtml = canUserModifyReport(item)
