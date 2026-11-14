@@ -192,21 +192,21 @@
     }
     .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* FILTER & SUMMARY */
+    /* FILTER & SUMMARY (GRID 3x3 UNTUK 9 KARTU) */
     .filter-box { background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-glass); padding: 10px; border-radius: var(--radius-md); margin-bottom: 12px; }
     .filter-row { display: flex; gap: 6px; align-items: flex-end; }
     .filter-item { flex: 1; }
     .filter-item label { display: block; font-size: 9.5px; font-weight: 700; margin-bottom: 2px; color: var(--text-muted); }
     .btn-reset { padding: 6px 10px; background: var(--navy-blue); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; height: 29px; }
 
-    .summary-box { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 14px; }
+    .summary-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 14px; }
     .summary-card {
-      background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-sm); padding: 5px 2px;
-      border: 1px solid var(--border-glass); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; min-height: 42px;
+      background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-sm); padding: 6px 4px;
+      border: 1px solid var(--border-glass); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; min-height: 44px;
     }
     .summary-card.active-card { border-color: var(--turquoise-blue) !important; background: rgba(0, 188, 212, 0.1) !important; }
-    .summary-card h4 { font-size: 5.5px; color: var(--turquoise-blue); text-transform: uppercase; font-weight: 800; margin-bottom: 1px; text-align: center; }
-    .summary-card p { font-size: 10px; font-weight: 850; color: #ffffff; }
+    .summary-card h4 { font-size: 6.5px; color: var(--turquoise-blue); text-transform: uppercase; font-weight: 800; margin-bottom: 2px; text-align: center; }
+    .summary-card p { font-size: 10.5px; font-weight: 850; color: #ffffff; }
 
     /* REPORT GRID & CARD ACTION BUTTONS */
     .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
@@ -499,11 +499,11 @@
       </div>
       <input type="file" id="fotoKegiatan" class="hidden" accept="image/*" capture="environment" onchange="previewFileName(this)" required>
 
-      <button type="button" class="btn-gps" onclick="getGPSLocation(false)">
+      <button type="button" id="btnGpsLock" class="btn-gps" onclick="acquireGPS(false)">
         <span style="color: var(--turquoise-blue);">📍</span> Ambil Titik Lokasi GPS
       </button>
       <div class="form-group">
-        <input type="text" id="gps" class="form-control" placeholder="Koordinat GPS Presisi" readonly style="text-align: center; font-weight: 600; font-size: 10px;">
+        <input type="text" id="gps" class="form-control" placeholder="Koordinat GPS Presisi (Wajib Terkunci)" readonly style="text-align: center; font-weight: 600; font-size: 10px;">
         <input type="hidden" id="gpsAccuracy" value="0">
       </div>
 
@@ -541,7 +541,7 @@
         <p id="sumUKVALBM">0</p>
       </div>
       <div class="summary-card" id="card-UjiKelayakan" onclick="filterByJenis('Uji Kelayakan')">
-        <h4>UJI KEL.</h4>
+        <h4>UJI KELAYAKAN</h4>
         <p id="sumUjiKelayakan">0</p>
       </div>
       <div class="summary-card" id="card-AkadPencairan" onclick="filterByJenis('Akad Pencairan')">
@@ -559,6 +559,10 @@
       <div class="summary-card" id="card-Sosialisasi" onclick="filterByJenis('Sosialisasi')">
         <h4>SOSIALISASI</h4>
         <p id="sumSosialisasi">0</p>
+      </div>
+      <div class="summary-card" id="card-KumpulanPelayanan" onclick="filterByJenis('Kumpulan Pelayanan')">
+        <h4>KUMPULAN</h4>
+        <p id="sumKumpulanPelayanan">0</p>
       </div>
       <div class="summary-card" id="card-Doortodoor" onclick="filterByJenis('Door to door')">
         <h4>DOOR TO DOOR</h4>
@@ -712,6 +716,121 @@
     return parseInt(digits, 10) || 0;
   }
 
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, """)
+      .replace(/'/g, "'");
+  }
+
+  /* ==============================================================
+     INDEXEDDB OFFLINE STORAGE (KAPASITAS BESAR & MIGRASI OTOMATIS)
+     ============================================================== */
+  const OFFLINE_DB_NAME = 'bpars_offline_db';
+  const OFFLINE_STORE_NAME = 'offline_reports';
+
+  function openOfflineDB() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        reject(new Error('IndexedDB tidak didukung browser'));
+        return;
+      }
+      const req = indexedDB.open(OFFLINE_DB_NAME, 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(OFFLINE_STORE_NAME)) {
+          db.createObjectStore(OFFLINE_STORE_NAME, { keyPath: 'clientId' });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  async function migrateLegacyLocalStorageQueue() {
+    try {
+      const legacyRaw = localStorage.getItem('offline_reports');
+      if (!legacyRaw) return;
+      const legacyList = JSON.parse(legacyRaw);
+      if (Array.isArray(legacyList) && legacyList.length > 0) {
+        for (const item of legacyList) {
+          if (!item.clientId) {
+            item.clientId = `${item.namaPetugas}_${item.waktuKegiatan}_${item.jenisKegiatan}`;
+          }
+          await saveOfflineReportDB(item, false);
+        }
+      }
+      localStorage.removeItem('offline_reports');
+    } catch (e) {}
+  }
+
+  async function getAllOfflineReports() {
+    try {
+      const db = await openOfflineDB();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(OFFLINE_STORE_NAME, 'readonly');
+        const store = tx.objectStore(OFFLINE_STORE_NAME);
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      try {
+        return JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      } catch (err) {
+        return [];
+      }
+    }
+  }
+
+  async function saveOfflineReportDB(payload, shouldUpdateCounter = true) {
+    if (!payload.clientId) {
+      payload.clientId = generateClientId();
+    }
+    try {
+      const db = await openOfflineDB();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(OFFLINE_STORE_NAME, 'readwrite');
+        const store = tx.objectStore(OFFLINE_STORE_NAME);
+        const req = store.put(payload);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      let fallback = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      const idx = fallback.findIndex(r => r.clientId === payload.clientId);
+      if (idx !== -1) fallback[idx] = payload;
+      else fallback.push(payload);
+      localStorage.setItem('offline_reports', JSON.stringify(fallback));
+    }
+    if (shouldUpdateCounter) {
+      await updateOfflineQueueCounter();
+    }
+  }
+
+  async function removeOfflineReportDB(itemId) {
+    try {
+      const db = await openOfflineDB();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(OFFLINE_STORE_NAME, 'readwrite');
+        const store = tx.objectStore(OFFLINE_STORE_NAME);
+        const req = store.delete(itemId);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      let currentQueue = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      let updatedQueue = currentQueue.filter(r => {
+        const rId = r.clientId || `${r.namaPetugas}_${r.waktuKegiatan}_${r.jenisKegiatan}`;
+        return rId !== itemId;
+      });
+      localStorage.setItem('offline_reports', JSON.stringify(updatedQueue));
+    }
+  }
+
   /* ==============================================================
      MANAJEMEN SESI LOGIN, DAFTAR PIN & AKSES UNTUK UMUM
      ============================================================== */
@@ -738,10 +857,10 @@
     localStorage.setItem('bpars_user_session', JSON.stringify(currentUser));
   }
 
-  function enterViewerMode() {
+  async function enterViewerMode() {
     saveUserSession("Pengguna Umum", "VIEWER");
     applySessionToAppUI();
-    initializeAppDataAfterLogin();
+    await initializeAppDataAfterLogin();
     switchTab('analisa');
   }
 
@@ -854,7 +973,7 @@
       if (result.status === "success") {
         saveUserSession(result.namaPetugas, result.role);
         applySessionToAppUI();
-        initializeAppDataAfterLogin();
+        await initializeAppDataAfterLogin();
         switchTab('input');
       } else if (result.status === "not_registered") {
         alert("ℹ️ " + (result.message || "Akun belum mendaftarkan PIN. Silakan daftar PIN terlebih dahulu."));
@@ -911,7 +1030,7 @@
         saveUserSession(result.namaPetugas, result.role);
         alert(`✅ PIN untuk ${result.namaPetugas} berhasil didaftarkan!\nHP Anda sekarang sudah masuk otomatis.`);
         applySessionToAppUI();
-        initializeAppDataAfterLogin();
+        await initializeAppDataAfterLogin();
         switchTab('input');
       } else if (result.status === "already_registered") {
         alert("ℹ️ " + result.message);
@@ -968,7 +1087,7 @@
     return "";
   }
 
-  function initializeAppDataAfterLogin() {
+  async function initializeAppDataAfterLogin() {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('waktuKegiatan').value = now.toISOString().slice(0, 16);
@@ -979,7 +1098,8 @@
 
     populatePetugasDropdown();
     updateOnlineStatus();
-    updateOfflineQueueCounter();
+    await migrateLegacyLocalStorageQueue();
+    await updateOfflineQueueCounter();
     
     try {
       allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
@@ -998,11 +1118,11 @@
     }
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('DOMContentLoaded', async () => {
     const isLoggedIn = loadSavedSession();
     applySessionToAppUI();
     if (isLoggedIn) {
-      initializeAppDataAfterLogin();
+      await initializeAppDataAfterLogin();
       if (currentUser && currentUser.role === 'VIEWER') {
         switchTab('analisa');
       }
@@ -1021,22 +1141,13 @@
     else { indicator.classList.remove('active'); }
   }
 
-  function updateOfflineQueueCounter() {
+  async function updateOfflineQueueCounter() {
     if (isSyncing) return;
-    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    const offlineData = await getAllOfflineReports();
     const textEl = document.getElementById('syncStatusText');
     if (textEl) {
       textEl.innerText = `Antrean Offline: ${offlineData.length} laporan`;
     }
-  }
-
-  function removeOfflineItemById(itemId) {
-    let currentQueue = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-    let updatedQueue = currentQueue.filter(r => {
-      const rId = r.clientId || `${r.namaPetugas}_${r.waktuKegiatan}_${r.jenisKegiatan}`;
-      return rId !== itemId;
-    });
-    localStorage.setItem('offline_reports', JSON.stringify(updatedQueue));
   }
 
   function markClientIdAsSent(itemId) {
@@ -1084,6 +1195,9 @@
     const btnToggle = document.getElementById('btnToggleCameraMode');
     const statusText = document.getElementById('fileStatus');
 
+    fileInput.value = "";
+    statusText.style.color = "var(--text-muted)";
+
     isLiveCameraMode = !isLiveCameraMode;
     if (isLiveCameraMode) {
       fileInput.setAttribute('capture', 'environment');
@@ -1097,7 +1211,7 @@
   }
 
   function triggerFileInput() {
-    getGPSLocation(true);
+    acquireGPS(true);
     document.getElementById('fotoKegiatan').click();
   }
 
@@ -1120,6 +1234,19 @@
     document.getElementById('targetUjiKelayakanRaw').value = value || "0";
     if (value === "") { input.value = ""; return; }
     input.value = "Rp " + new Intl.NumberFormat('id-ID').format(value);
+  }
+
+  function resetGPSState() {
+    const gpsInput = document.getElementById('gps');
+    const gpsAccInput = document.getElementById('gpsAccuracy');
+    const btnGps = document.getElementById('btnGpsLock');
+
+    if (gpsInput) gpsInput.value = "";
+    if (gpsAccInput) gpsAccInput.value = "0";
+    if (btnGps) {
+      btnGps.disabled = false;
+      btnGps.innerHTML = `<span style="color: var(--turquoise-blue);">📍</span> Ambil Titik Lokasi GPS`;
+    }
   }
 
   function toggleFormKegiatan() {
@@ -1145,16 +1272,23 @@
     document.getElementById('kategoriMitra').required = false;
     document.getElementById('plafond').required = false;
 
-    if (jenis === 'Uji Kelayakan' || jenis === 'UK VAL BM' || jenis === 'Akad Pencairan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
+    // Reset lampiran foto & GPS setiap kali berpindah jenis kegiatan agar tidak terbawa antar kegiatan
+    fileInput.value = "";
+    statusText.style.color = "var(--text-muted)";
+    isLiveCameraMode = true;
+    fileInput.setAttribute('capture', 'environment');
+    btnToggle.innerText = "📁 Mode Upload File";
+    statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
+    resetGPSState();
+    startGPSPreWarm();
+
+    // Tombol Mode Upload File dihapus khusus untuk Uji Kelayakan; jenis kegiatan lain tetap dipertahankan
+    if (jenis === 'UK VAL BM' || jenis === 'Akad Pencairan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
       containerSwitch.classList.remove('hidden');
       lblDefault.classList.add('hidden');
     } else {
       containerSwitch.classList.add('hidden');
       lblDefault.classList.remove('hidden');
-      isLiveCameraMode = true;
-      fileInput.setAttribute('capture', 'environment');
-      btnToggle.innerText = "📁 Mode Upload File";
-      statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
     }
 
     if (jenis === 'Uji Kelayakan' || jenis === 'UK VAL BM') {
@@ -1178,7 +1312,7 @@
     if (input.files && input.files[0]) {
       status.innerText = "✓ Foto Berhasil Dipilih!";
       status.style.color = "var(--turquoise-blue)";
-      getGPSLocation(true);
+      acquireGPS(true);
     }
   }
 
@@ -1192,59 +1326,66 @@
     }
   }
 
-  function getGPSLocation(isAuto = false) {
-    if (!navigator.geolocation) {
-      if (!isAuto) alert("Perangkat Anda tidak mendukung fitur Geolocation.");
-      return;
-    }
+  function acquireGPS(isAuto = false) {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        if (!isAuto) alert("Perangkat Anda tidak mendukung fitur Geolocation.");
+        resolve(false);
+        return;
+      }
 
-    const btnGps = document.querySelector('.btn-gps');
-    if (btnGps && !isAuto) {
-      btnGps.disabled = true;
-      btnGps.innerText = "⏳ Mengunci Titik GPS Presisi Tinggi...";
-    }
+      const btnGps = document.getElementById('btnGpsLock');
+      if (btnGps) {
+        btnGps.disabled = true;
+        btnGps.innerText = "⏳ Mengunci Titik GPS Presisi Tinggi...";
+      }
 
-    const gpsOptions = {
-      enableHighAccuracy: true,
-      timeout: 7000,
-      maximumAge: 10000
-    };
+      const gpsOptions = {
+        enableHighAccuracy: true,
+        timeout: 7000,
+        maximumAge: 10000
+      };
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude.toFixed(7);
-        const lng = pos.coords.longitude.toFixed(7);
-        const accuracy = Math.round(pos.coords.accuracy);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude.toFixed(7);
+          const lng = pos.coords.longitude.toFixed(7);
+          const accuracy = Math.round(pos.coords.accuracy);
 
-        document.getElementById('gps').value = `${lat}, ${lng}`;
-        
-        const accuracyInput = document.getElementById('gpsAccuracy');
-        if (accuracyInput) accuracyInput.value = accuracy;
+          document.getElementById('gps').value = `${lat}, ${lng}`;
+          
+          const accuracyInput = document.getElementById('gpsAccuracy');
+          if (accuracyInput) accuracyInput.value = accuracy;
 
-        if (!isAuto) {
-          alert(`📍 Lokasi Berhasil Dikunci!\nAkurasi Sensor HP: ±${accuracy} meter.`);
-        }
+          if (!isAuto) {
+            alert(`📍 Lokasi Berhasil Dikunci!\nAkurasi Sensor HP: ±${accuracy} meter.`);
+          }
 
-        if (btnGps) {
-          btnGps.disabled = false;
-          btnGps.innerHTML = `<span style="color: #34d399;">📍</span> GPS Terkunci Otomatis (±${accuracy}m)`;
-        }
-      },
-      (err) => {
-        let errMsg = "Gagal mengambil lokasi GPS.";
-        if (err.code === 1) errMsg = "Izin lokasi ditolak. Harap aktifkan izin GPS di HP Anda.";
-        else if (err.code === 2) errMsg = "Sinyal GPS tidak ditemukan. Pastikan berada di area terbuka.";
-        else if (err.code === 3) errMsg = "Waktu pengambilan GPS habis (Timeout). Coba lagi.";
-        
-        if (!isAuto) alert(errMsg);
+          if (btnGps) {
+            btnGps.disabled = false;
+            btnGps.innerHTML = `<span style="color: #34d399;">📍</span> GPS Terkunci Otomatis (±${accuracy}m)`;
+          }
+          resolve(true);
+        },
+        (err) => {
+          let errMsg = "Gagal mengambil lokasi GPS.";
+          if (err.code === 1) errMsg = "Izin lokasi ditolak. Harap aktifkan izin GPS di HP Anda.";
+          else if (err.code === 2) errMsg = "Sinyal GPS tidak ditemukan. Pastikan berada di area terbuka.";
+          else if (err.code === 3) errMsg = "Waktu pengambilan GPS habis (Timeout). Coba lagi.";
+          
+          if (!isAuto) alert(errMsg);
 
-        if (btnGps && !document.getElementById('gps').value) {
-          btnGps.disabled = false;
-          btnGps.innerHTML = `<span style="color: var(--turquoise-blue);">📍</span> Ambil Titik Lokasi GPS`;
-        }
-      },
-      gpsOptions
-    );
+          if (btnGps) {
+            btnGps.disabled = false;
+            if (!document.getElementById('gps').value) {
+              btnGps.innerHTML = `<span style="color: var(--turquoise-blue);">📍</span> Ambil Titik Lokasi GPS`;
+            }
+          }
+          resolve(Boolean(document.getElementById('gps').value));
+        },
+        gpsOptions
+      );
+    });
   }
 
   function compressImage(file, maxWidth = 600, maxHeight = 600, quality = 0.45) {
@@ -1297,23 +1438,35 @@
     }
   }
 
-  function saveToOfflineQueue(payload) {
-    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-    offlineData.push(payload);
-    localStorage.setItem('offline_reports', JSON.stringify(offlineData));
-    updateOfflineQueueCounter();
-  }
-
   document.getElementById('reportForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!currentUser || currentUser.role === 'VIEWER') return;
+
+    const fotoFile = document.getElementById('fotoKegiatan').files[0];
+    if (!fotoFile) {
+      alert("📷 Foto kegiatan wajib dilampirkan terlebih dahulu!");
+      return;
+    }
 
     const btnSubmit = document.getElementById('btnSubmit');
     btnSubmit.disabled = true; btnSubmit.innerText = "Memproses...";
 
     try {
-      const fotoFile = document.getElementById('fotoKegiatan').files[0];
-      let fotoBase64 = fotoFile ? await compressImage(fotoFile) : "";
+      // Pastikan titik GPS wajib terkunci sebelum laporan dikirim
+      let gpsVal = document.getElementById('gps').value.trim();
+      if (!gpsVal) {
+        btnSubmit.innerText = "Mengunci Lokasi GPS...";
+        await acquireGPS(true);
+        gpsVal = document.getElementById('gps').value.trim();
+      }
+
+      if (!gpsVal) {
+        alert("📍 Lokasi GPS wajib dikunci terlebih dahulu sebelum mengirim laporan!\nPastikan GPS/Lokasi HP aktif lalu tekan tombol 'Ambil Titik Lokasi GPS'.");
+        return;
+      }
+
+      btnSubmit.innerText = "Mengompres Foto & Mengirim...";
+      let fotoBase64 = await compressImage(fotoFile);
       const gpsAccEl = document.getElementById('gpsAccuracy');
 
       const payload = {
@@ -1328,7 +1481,7 @@
         waktuKegiatan: document.getElementById('waktuKegiatan').value.replace("T", " "),
         keteranganKegiatan: document.getElementById('keteranganKegiatan').value,
         foto: fotoBase64,
-        gps: document.getElementById('gps').value,
+        gps: gpsVal,
         gpsAccuracy: gpsAccEl ? gpsAccEl.value : "0"
       };
 
@@ -1343,22 +1496,21 @@
             markClientIdAsSent(payload.clientId);
             alert("✅ Laporan Berhasil Terkirim ke Spreadsheet!");
           } else {
-            saveToOfflineQueue(payload);
+            await saveOfflineReportDB(payload);
             alert("⚠️ Server sibuk. Laporan otomatis diamankan ke Antrean Offline!");
           }
         } catch (networkErr) {
-          saveToOfflineQueue(payload);
+          await saveOfflineReportDB(payload);
           alert("⚠️ Sinyal terputus saat mengirim. Laporan otomatis disimpan di Antrean Offline!");
         }
       } else {
-        saveToOfflineQueue(payload);
+        await saveOfflineReportDB(payload);
         alert("Mode Offline: Laporan tersimpan di perangkat dan akan otomatis disinkronkan saat online.");
       }
 
       document.getElementById('reportForm').reset(); 
       applySessionToAppUI();
       document.getElementById('nominalPenagihanRaw').value = "0";
-      document.getElementById('fileStatus').innerText = "Ambil Foto Kamera Belakang (Live)"; 
       toggleFormKegiatan();
 
       const now = new Date();
@@ -1392,7 +1544,7 @@
       return;
     }
 
-    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    const offlineData = await getAllOfflineReports();
     const btn = document.getElementById('btnManualSync');
     const textEl = document.getElementById('syncStatusText');
 
@@ -1402,7 +1554,7 @@
         if (textEl) textEl.innerText = "Memperbarui data dari server...";
         await fetchBackgroundData();
         if (btn) { btn.disabled = false; btn.innerText = "🔄 Sinkronkan Sekarang"; }
-        updateOfflineQueueCounter();
+        await updateOfflineQueueCounter();
         alert("✅ Data riwayat & analisa sudah diperbarui!");
       }
       return;
@@ -1422,7 +1574,7 @@
         const itemId = item.clientId || `${item.namaPetugas}_${item.waktuKegiatan}_${item.jenisKegiatan}`;
 
         if (isClientIdAlreadySent(itemId)) {
-          removeOfflineItemById(itemId);
+          await removeOfflineReportDB(itemId);
           continue;
         }
 
@@ -1435,14 +1587,14 @@
 
           if (result.status === "success" || result.status === "duplicate_ignored") {
             markClientIdAsSent(itemId);
-            removeOfflineItemById(itemId);
+            await removeOfflineReportDB(itemId);
             sentCount++;
           } else {
             failCount++;
           }
 
-          let remaining = JSON.parse(localStorage.getItem('offline_reports') || '[]').length;
-          if (textEl) textEl.innerText = `Menyinkronkan... (Sisa: ${remaining})`;
+          const remainingList = await getAllOfflineReports();
+          if (textEl) textEl.innerText = `Menyinkronkan... (Sisa: ${remainingList.length})`;
         } catch (e) { 
           failCount++;
         }
@@ -1462,7 +1614,7 @@
     } finally {
       isSyncing = false;
       if (btn) { btn.disabled = false; btn.innerText = "🔄 Sinkronkan Sekarang"; }
-      updateOfflineQueueCounter();
+      await updateOfflineQueueCounter();
     }
   }
 
@@ -1476,9 +1628,9 @@
       localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
       localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
       
-      triggerFilterReport();
-      triggerRenderAnalisa();
-      updateOfflineQueueCounter();
+      await triggerFilterReport();
+      await triggerRenderAnalisa();
+      await updateOfflineQueueCounter();
     } catch (err) {}
   }
 
@@ -1568,18 +1720,17 @@
       }
 
       if (editingTargetItem.isOfflinePending) {
-        let offlineQueue = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-        const targetIdx = offlineQueue.findIndex(r => r.clientId === editingTargetItem.clientId);
-        if (targetIdx !== -1) {
-          offlineQueue[targetIdx].kategoriMitra = newKategori;
-          offlineQueue[targetIdx].plafond = String(newPlafond);
-          offlineQueue[targetIdx].nominalPenagihan = String(newPenagihan);
-          offlineQueue[targetIdx].keteranganKegiatan = newKet;
-          localStorage.setItem('offline_reports', JSON.stringify(offlineQueue));
-        }
+        const updatedItem = {
+          ...editingTargetItem,
+          kategoriMitra: newKategori,
+          plafond: String(newPlafond),
+          nominalPenagihan: String(newPenagihan),
+          keteranganKegiatan: newKet
+        };
+        await saveOfflineReportDB(updatedItem, false);
         closeEditModal();
-        triggerFilterReport();
-        triggerRenderAnalisa();
+        await triggerFilterReport();
+        await triggerRenderAnalisa();
         alert("✅ Koreksi laporan di antrean offline berhasil disimpan!");
         return;
       }
@@ -1621,8 +1772,8 @@
         localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
 
         closeEditModal();
-        triggerFilterReport();
-        triggerRenderAnalisa();
+        await triggerFilterReport();
+        await triggerRenderAnalisa();
         alert("✅ Koreksi laporan berhasil disimpan ke Spreadsheet!");
       } else if (result.status === "forbidden") {
         alert("⛔ Akses ditolak: Anda tidak memiliki izin mengedit laporan ini.");
@@ -1659,12 +1810,11 @@
     if (!yakin) return;
 
     if (item.isOfflinePending) {
-      let offlineQueue = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-      offlineQueue = offlineQueue.filter(r => r.clientId !== item.clientId);
-      localStorage.setItem('offline_reports', JSON.stringify(offlineQueue));
-      updateOfflineQueueCounter();
-      triggerFilterReport();
-      triggerRenderAnalisa();
+      const itemId = item.clientId || `${item.namaPetugas}_${item.waktuKegiatan}_${item.jenisKegiatan}`;
+      await removeOfflineReportDB(itemId);
+      await updateOfflineQueueCounter();
+      await triggerFilterReport();
+      await triggerRenderAnalisa();
       alert("🗑️ Laporan di antrean offline berhasil dihapus.");
       return;
     }
@@ -1697,8 +1847,8 @@
         allReports = allReports.filter(r => r !== item);
         localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
 
-        triggerFilterReport();
-        triggerRenderAnalisa();
+        await triggerFilterReport();
+        await triggerRenderAnalisa();
         alert("🗑️ Laporan berhasil dihapus dari sistem & Spreadsheet!");
       } else if (result.status === "forbidden") {
         alert("⛔ Akses ditolak: Anda tidak memiliki izin menghapus laporan ini.");
@@ -1798,14 +1948,14 @@
     const dashboard = document.getElementById('analisaDashboard');
     if (!dashboard) return;
     
-    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-    let combinedData = [...offlineData, ...allReports];
-    renderAnalisa(combinedData);
+    const offlineData = await getAllOfflineReports();
+    const combinedData = [...offlineData, ...allReports];
+    await renderAnalisa(combinedData);
   }
 
-  function renderAnalisa(reportsData) {
+  async function renderAnalisa(reportsData) {
     if (!reportsData) {
-       let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+       const offlineData = await getAllOfflineReports();
        reportsData = [...offlineData, ...allReports];
     }
     
@@ -1992,7 +2142,7 @@
         grafikPetugasHtml += `
           <div class="chart-row">
             <div class="chart-label-group">
-              <span class="chart-officer-name">👤 ${pName}</span>
+              <span class="chart-officer-name">👤 ${escapeHtml(pName)}</span>
               <span class="chart-officer-val">${formatRupiah(val)}</span>
             </div>
             <div class="chart-bar-bg">
@@ -2010,8 +2160,8 @@
       <div class="analisa-card-main">
         <h4>${cardTitle}</h4>
         <h2>${cardValue}</h2>
-        <p>Petugas: <b>${labelPetugas}</b></p>
-        <p>Periode Waktu: <b>${labelPeriode}</b></p>
+        <p>Petugas: <b>${escapeHtml(labelPetugas)}</b></p>
+        <p>Periode Waktu: <b>${escapeHtml(labelPeriode)}</b></p>
         <div class="analisa-badge">${cardSub}</div>
         ${grafikPetugasHtml}
       </div>
@@ -2128,8 +2278,8 @@
   }
 
   async function triggerFilterReport() {
-    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-    let combined = [...offlineData, ...allReports];
+    const offlineData = await getAllOfflineReports();
+    const combined = [...offlineData, ...allReports];
     applyFilters(combined);
   }
 
@@ -2156,7 +2306,7 @@
   }
 
   function updateSummaryCounts(reports) {
-    let counts = { total: reports.length, ukvalbm: 0, uji: 0, akad: 0, tagihPAR: 0, home: 0, sos: 0, door: 0 };
+    let counts = { total: reports.length, ukvalbm: 0, uji: 0, akad: 0, tagihPAR: 0, home: 0, sos: 0, kumpulan: 0, door: 0 };
     reports.forEach(r => {
       const j = (r.jenisKegiatan || '').trim();
       if (j === 'UK VAL BM') counts.ukvalbm++;
@@ -2165,6 +2315,7 @@
       else if (j === 'Hasil Penagihan PAR') counts.tagihPAR++;
       else if (j === 'Home Visit') counts.home++;
       else if (j === 'Sosialisasi') counts.sos++;
+      else if (j === 'Kumpulan Pelayanan') counts.kumpulan++;
       else if (j === 'Door to door') counts.door++;
     });
 
@@ -2175,6 +2326,7 @@
     document.getElementById('sumHasilPenagihanPAR').innerText = counts.tagihPAR;
     document.getElementById('sumHomeVisit').innerText = counts.home;
     document.getElementById('sumSosialisasi').innerText = counts.sos;
+    if(document.getElementById('sumKumpulanPelayanan')) document.getElementById('sumKumpulanPelayanan').innerText = counts.kumpulan;
     document.getElementById('sumDoortodoor').innerText = counts.door;
   }
 
@@ -2204,11 +2356,12 @@
         imgSrc = item.foto;
       }
 
+      const safeImgSrc = escapeHtml(imgSrc);
       const fotoHtml = imgSrc 
-        ? `<img src="${imgSrc}" class="img-preview" loading="lazy" onclick="openModal('${imgSrc}')" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: rgba(239,68,68,0.15); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
+        ? `<img src="${safeImgSrc}" class="img-preview" loading="lazy" onclick="openModal('${safeImgSrc}')" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: rgba(239,68,68,0.15); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
         : `<div style="height: 55px; background: rgba(255,255,255,0.03); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 7.5px;">Tanpa Foto</div>`;
       
-      const katMitra = item.kategoriMitra ? `<span style="color: var(--turquoise-blue); font-weight:800;">(${item.kategoriMitra})</span>` : '';
+      const katMitra = item.kategoriMitra ? `<span style="color: var(--turquoise-blue); font-weight:800;">(${escapeHtml(item.kategoriMitra)})</span>` : '';
       let subValue = "";
       const plafondNum = parseCleanNumber(item.plafond);
       const penagihanNum = parseCleanNumber(item.nominalPenagihan);
@@ -2221,7 +2374,7 @@
 
       let gpsHtml = "";
       if (item.gps) {
-        gpsHtml = `<a href="https://www.google.com/maps?q=${item.gps}" target="_blank" class="map-link">📍 Buka Maps</a>`;
+        gpsHtml = `<a href="https://www.google.com/maps?q=${encodeURIComponent(item.gps)}" target="_blank" class="map-link">📍 Buka Maps</a>`;
       }
 
       let statusBadge = item.isOfflinePending 
@@ -2229,7 +2382,7 @@
         : `<span class="badge-sync">✓</span>`;
 
       let readableTime = formatReadableDateTime(item.waktuKegiatan);
-      let ketTeks = item.keteranganKegiatan || item.keterangan || "";
+      let ketTeks = escapeHtml(item.keteranganKegiatan || item.keterangan || "");
 
       const actionFooterHtml = canUserModifyReport(item)
         ? `<div class="card-actions">
@@ -2241,11 +2394,11 @@
       card.innerHTML = `
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-            <span class="card-title">${item.jenisKegiatan} ${katMitra}</span>
+            <span class="card-title">${escapeHtml(item.jenisKegiatan)} ${katMitra}</span>
             ${statusBadge}
           </div>
-          <div style="color: var(--text-main); font-size: 8px; margin-bottom: 1px;"><b>Petugas:</b> ${item.namaPetugas}</div>
-          <div style="color: var(--text-muted); font-size: 7.5px; margin-bottom: 1px;"><b>Waktu:</b> ${readableTime}</div>
+          <div style="color: var(--text-main); font-size: 8px; margin-bottom: 1px;"><b>Petugas:</b> ${escapeHtml(item.namaPetugas)}</div>
+          <div style="color: var(--text-muted); font-size: 7.5px; margin-bottom: 1px;"><b>Waktu:</b> ${escapeHtml(readableTime)}</div>
           ${subValue}
           <div style="color: var(--text-muted); font-size: 7.5px; line-height: 1.15; margin-bottom: 2px;"><b>Ket:</b> ${ketTeks}</div>
           ${gpsHtml}
