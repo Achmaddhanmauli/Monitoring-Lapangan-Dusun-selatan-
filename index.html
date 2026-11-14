@@ -119,7 +119,7 @@
       color: #ffffff; box-shadow: 0 4px 12px var(--amartha-purple-glow);
     }
 
-    /* AUTH SCREEN (LOGIN, DAFTAR PIN & AKSES UNTUK UMUM) */
+    /* AUTH SCREEN */
     .auth-wrapper {
       width: 100%; max-width: 420px; background: var(--bg-card);
       backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
@@ -192,7 +192,7 @@
     }
     .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* FILTER & SUMMARY (GRID 3x3 UNTUK 9 KARTU) */
+    /* FILTER & SUMMARY */
     .filter-box { background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-glass); padding: 10px; border-radius: var(--radius-md); margin-bottom: 12px; }
     .filter-row { display: flex; gap: 6px; align-items: flex-end; }
     .filter-item { flex: 1; }
@@ -208,38 +208,42 @@
     .summary-card h4 { font-size: 6.5px; color: var(--turquoise-blue); text-transform: uppercase; font-weight: 800; margin-bottom: 2px; text-align: center; }
     .summary-card p { font-size: 10.5px; font-weight: 850; color: #ffffff; }
 
-    /* REPORT GRID & CARD ACTION BUTTONS */
+    /* REPORT GRID & CARD STYLING */
     .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
     .card-item {
       background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm);
       padding: 7px; font-size: 8.5px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;
     }
-    .card-title { font-weight: 850; color: var(--turquoise-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .badge-sync { background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
-    .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
+    .card-title { font-weight: 850; color: var(--turquoise-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65px; display: inline-block; vertical-align: middle; }
+    
+    .card-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; gap: 2px; }
+    .card-badges-right { display: flex; align-items: center; gap: 3px; }
+
+    .badge-sync { background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 1px 3px; border-radius: 4px; font-size: 6.5px; font-weight: 800; }
+    .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 1px 3px; border-radius: 4px; font-size: 6.5px; font-weight: 800; }
+    
+    /* IKON HAPUS KECIL DI POJOK KANAN ATAS CARD */
+    .btn-card-del-top {
+      background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171; width: 18px; height: 18px; border-radius: 4px; font-size: 9px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; padding: 0;
+    }
+    .btn-card-del-top:hover { background: rgba(239, 68, 68, 0.3); }
+
     .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid var(--border-glass); }
     .map-link { display: inline-block; margin-top: 3px; font-size: 7.5px; font-weight: 700; color: var(--turquoise-blue); text-decoration: none; background: rgba(0, 188, 212, 0.1); padding: 2px 5px; border-radius: 4px; }
 
-    .card-actions { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+    .card-actions { display: flex; align-items: center; gap: 4px; margin-top: 5px; }
     .btn-card-edit {
-      flex: 1; padding: 4px 4px; border-radius: 4px; font-size: 7.5px; font-weight: 800;
+      width: 100%; padding: 5px; border-radius: 4px; font-size: 8px; font-weight: 800;
       cursor: pointer; border: 1px solid rgba(0, 188, 212, 0.25);
       background: rgba(0, 188, 212, 0.12); color: var(--turquoise-blue);
       transition: 0.2s; text-align: center;
     }
     .btn-card-edit:hover { background: rgba(0, 188, 212, 0.25); }
-    .btn-card-del {
-      flex: 0 0 auto; width: 22px; height: 21px; padding: 0; border-radius: 4px;
-      font-size: 9px; line-height: 1; cursor: pointer;
-      border: 1px solid rgba(239, 68, 68, 0.22);
-      background: rgba(239, 68, 68, 0.08); color: #f87171;
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0.8; transition: 0.2s;
-    }
-    .btn-card-del:hover { background: rgba(239, 68, 68, 0.25); opacity: 1; }
     .view-only-tag {
       margin-top: 5px; text-align: center; font-size: 7px; color: var(--text-muted);
-      background: rgba(255, 255, 255, 0.03); padding: 3px; border-radius: 4px;
+      background: rgba(255, 255, 255, 0.03); padding: 3px; border-radius: 4px; width: 100%;
     }
 
     /* ANALISA DASHBOARD */
@@ -277,7 +281,7 @@
     .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(0, 188, 212, 0.3); border-radius: 50%; border-top-color: var(--turquoise-blue); animation: spin 1s ease-in-out infinite; margin-top: 20px;}
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* MODALS (FOTO & EDIT) */
+    /* MODALS */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 16, 0.88); display: none; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(5px); padding: 12px; }
     .modal-overlay.active { display: flex !important; }
     .modal-content { background: #141726; border: 1px solid var(--border-glass); padding: 10px; border-radius: var(--radius-md); max-width: 88vw; max-height: 75vh; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.7); }
@@ -366,7 +370,7 @@
     </p>
   </form>
 
-  <!-- AKSES UNTUK UMUM (NON-PETUGAS / BELUM LOGIN AKUN) -->
+  <!-- AKSES UNTUK UMUM -->
   <div class="viewer-access-box">
     <button type="button" class="btn-viewer-mode" onclick="enterViewerMode()">
       🌐 Akses untuk Umum
@@ -378,7 +382,7 @@
 </div>
 
 <!-- =================================================================
-     APLIKASI UTAMA BPARS (MUNCUL SETELAH LOGIN ATAU AKSES UMUM)
+     APLIKASI UTAMA BPARS
      ================================================================= -->
 <div id="mainAppContainer" class="app-container hidden">
   <div class="header">
@@ -388,7 +392,7 @@
     </div>
   </div>
 
-  <!-- BAR IDENTITAS AKUN YANG SEDANG LOGIN -->
+  <!-- BAR IDENTITAS AKUN -->
   <div class="user-session-bar">
     <div>
       <span id="sessionUserDisplay" style="font-weight: 800; color: #ffffff;">👤 -</span>
@@ -646,7 +650,7 @@
       <div>Petugas: <b id="editInfoPetugas">-</b></div>
       <div>Kegiatan: <b id="editInfoJenis">-</b></div>
       <div>Waktu: <b id="editInfoWaktu">-</b></div>
-      <div style="font-size: 8.5px; margin-top: 3px; color: #fbbf24;">*Jika salah Jenis Kegiatan, tutup modal ini lalu tekan ikon hapus kecil di kartu.</div>
+      <div style="font-size: 8.5px; margin-top: 3px; color: #fbbf24;">*Jika salah Jenis Kegiatan, tutup modal ini lalu tekan ikon tong sampah di pojok kanan atas kartu.</div>
     </div>
 
     <form id="editReportForm">
@@ -703,7 +707,7 @@
 <script>
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDfrzKWdq4TaL_0ndekApN6DnjQXVgZEH6PmxnYnlx--JHUkfe43rmHiKV6LiU2HDu/exec";
 
-  let currentUser = null; // { namaPetugas, role: 'BM' | 'BP' | 'VIEWER' }
+  let currentUser = null; 
   let allReports = [];
   let currentRenderedReports = [];
   let editingTargetItem = null;
@@ -730,9 +734,6 @@
       .replace(/'/g, "'");
   }
 
-  /* ==============================================================
-     INDEXEDDB OFFLINE STORAGE (KAPASITAS BESAR & MIGRASI OTOMATIS)
-     ============================================================== */
   const OFFLINE_DB_NAME = 'bpars_offline_db';
   const OFFLINE_STORE_NAME = 'offline_reports';
 
@@ -835,9 +836,6 @@
     }
   }
 
-  /* ==============================================================
-     MANAJEMEN SESI LOGIN, DAFTAR PIN & AKSES UNTUK UMUM
-     ============================================================== */
   function loadSavedSession() {
     try {
       const raw = localStorage.getItem('bpars_user_session');
@@ -947,7 +945,6 @@
     applySessionToAppUI();
   }
 
-  // SUBMIT LOGIN PIN
   document.getElementById('loginPinForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const nama = document.getElementById('loginNamaPetugas').value.trim();
@@ -966,11 +963,7 @@
     try {
       const res = await fetch(SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify({
-          action: "login_pin",
-          namaPetugas: nama,
-          pin: pin
-        })
+        body: JSON.stringify({ action: "login_pin", namaPetugas: nama, pin: pin })
       });
       const result = await res.json();
 
@@ -994,7 +987,6 @@
     }
   });
 
-  // SUBMIT DAFTAR PIN BARU (1 KALI)
   document.getElementById('registerPinForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const nama = document.getElementById('regNamaPetugas').value.trim();
@@ -1022,11 +1014,7 @@
     try {
       const res = await fetch(SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify({
-          action: "register_pin",
-          namaPetugas: nama,
-          pin: pin1
-        })
+        body: JSON.stringify({ action: "register_pin", namaPetugas: nama, pin: pin1 })
       });
       const result = await res.json();
 
@@ -1051,9 +1039,6 @@
     }
   });
 
-  /* ==============================================================
-     INISIALISASI UTAMA SAAT HALAMAN DIBUKA
-     ============================================================== */
   function generateClientId() {
     return 'rep_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
   }
@@ -1635,9 +1620,6 @@
     } catch (err) {}
   }
 
-  /* ==============================================================
-     FITUR EDIT & HAPUS LAPORAN (BM vs STAF BP vs AKSES UMUM)
-     ============================================================== */
   function canUserModifyReport(item) {
     if (!currentUser || !item) return false;
     if (currentUser.role === 'VIEWER') return false;
@@ -1800,7 +1782,7 @@
     const waktuStr = formatReadableDateTime(item.waktuKegiatan);
     const oldKet = item.keteranganKegiatan || item.keterangan || "";
 
-    // Konfirmasi Tahap 1: Verifikasi detail laporan
+    // Konfirmasi Tahap 1
     const langkah1 = confirm(
       `⚠️ KONFIRMASI PENGHAPUSAN LAPORAN (1/2)\n\n` +
       `• Petugas: ${item.namaPetugas}\n` +
@@ -1811,7 +1793,7 @@
 
     if (!langkah1) return;
 
-    // Konfirmasi Tahap 2: Wajib ketik kata HAPUS agar tidak terhapus akibat salah klik
+    // Konfirmasi Tahap 2: Wajib ketik HAPUS
     const ketikKonfirmasi = prompt(
       `⚠️ KONFIRMASI AKHIR (2/2)\n\n` +
       `Untuk menghindari salah hapus, ketik kata HAPUS (huruf besar) lalu tekan OK:`
@@ -1874,8 +1856,6 @@
       alert("Gagal menghapus laporan: " + err.message);
     }
   }
-
-  /* ============================================================== */
 
   function getDirectImageUrl(url) {
     if (!url) return "";
@@ -2399,18 +2379,25 @@
       let readableTime = formatReadableDateTime(item.waktuKegiatan);
       let ketTeks = escapeHtml(item.keteranganKegiatan || item.keterangan || "");
 
+      // TOMBOL HAPUS DI POJOK KANAN ATAS & TOMBOL EDIT FULL DI BAWAH
+      let deleteBtnTopHtml = canUserModifyReport(item)
+        ? `<button type="button" class="btn-card-del-top" title="Hapus Laporan" aria-label="Hapus Laporan" onclick="confirmDeleteReport(${idx})">🗑️</button>`
+        : '';
+
       const actionFooterHtml = canUserModifyReport(item)
         ? `<div class="card-actions">
              <button type="button" class="btn-card-edit" onclick="openEditModal(${idx})">✏️ Edit</button>
-             <button type="button" class="btn-card-del" title="Hapus Laporan" aria-label="Hapus Laporan" onclick="confirmDeleteReport(${idx})">🗑️</button>
            </div>`
         : `<div class="view-only-tag">🔒 Hanya Lihat</div>`;
 
       card.innerHTML = `
         <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+          <div class="card-header-top">
             <span class="card-title">${escapeHtml(item.jenisKegiatan)} ${katMitra}</span>
-            ${statusBadge}
+            <div class="card-badges-right">
+              ${statusBadge}
+              ${deleteBtnTopHtml}
+            </div>
           </div>
           <div style="color: var(--text-main); font-size: 8px; margin-bottom: 1px;"><b>Petugas:</b> ${escapeHtml(item.namaPetugas)}</div>
           <div style="color: var(--text-muted); font-size: 7.5px; margin-bottom: 1px;"><b>Waktu:</b> ${escapeHtml(readableTime)}</div>
