@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b0764" />
+      <stop offset="52%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#0891b2" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+    <linearGradient id="glassShine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.0" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect x="6" y="6" width="500" height="500" rx="108" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="4" />
+  <path d="M114 6 H398 A108 108 0 0 1 506 114 V206 Q256 258 6 206 V114 A108 108 0 0 1 114 6 Z" fill="url(#glassShine)" />
+
+  <circle cx="256" cy="238" r="148" fill="none" stroke="rgba(56,189,248,0.22)" stroke-width="3" stroke-dasharray="12 10" />
+
+  <g filter="url(#glow)">
+    <rect x="148" y="246" width="38" height="84" rx="12" fill="#a855f7" />
+    <rect x="204" y="204" width="38" height="126" rx="12" fill="#38bdf8" />
+    <rect x="260" y="156" width="38" height="174" rx="12" fill="url(#accentGrad)" />
+  </g>
+
+  <g transform="translate(316, 134)">
+    <circle cx="34" cy="34" r="34" fill="#0f172a" stroke="#34d399" stroke-width="5" />
+    <path d="M34 15 C24.6 15 17 22.6 17 32 C17 44.2 34 55 34 55 C34 55 51 44.2 51 32 C51 22.6 43.4 15 34 15 Z" fill="#34d399" />
+    <circle cx="34" cy="31" r="6" fill="#0f172a" />
+  </g>
+
+  <text x="256" y="396" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="54" font-weight="900" letter-spacing="6">BPARS</text>
+  <text x="256" y="428" text-anchor="middle" fill="#67e8f9" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="4">DUSUN SELATAN</text>
+</svg>
