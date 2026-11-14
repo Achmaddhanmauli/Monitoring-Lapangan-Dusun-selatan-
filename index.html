@@ -220,19 +220,23 @@
     .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid var(--border-glass); }
     .map-link { display: inline-block; margin-top: 3px; font-size: 7.5px; font-weight: 700; color: var(--turquoise-blue); text-decoration: none; background: rgba(0, 188, 212, 0.1); padding: 2px 5px; border-radius: 4px; }
 
-    .card-actions { display: flex; gap: 4px; margin-top: 5px; }
-    .btn-card-edit, .btn-card-del {
-      flex: 1; padding: 4px 2px; border-radius: 4px; font-size: 7.5px; font-weight: 800;
-      cursor: pointer; border: 1px solid transparent; transition: 0.2s; text-align: center;
-    }
+    .card-actions { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
     .btn-card-edit {
-      background: rgba(0, 188, 212, 0.12); color: var(--turquoise-blue); border-color: rgba(0, 188, 212, 0.25);
+      flex: 1; padding: 4px 4px; border-radius: 4px; font-size: 7.5px; font-weight: 800;
+      cursor: pointer; border: 1px solid rgba(0, 188, 212, 0.25);
+      background: rgba(0, 188, 212, 0.12); color: var(--turquoise-blue);
+      transition: 0.2s; text-align: center;
     }
     .btn-card-edit:hover { background: rgba(0, 188, 212, 0.25); }
     .btn-card-del {
-      background: rgba(239, 68, 68, 0.12); color: #f87171; border-color: rgba(239, 68, 68, 0.25);
+      flex: 0 0 auto; width: 22px; height: 21px; padding: 0; border-radius: 4px;
+      font-size: 9px; line-height: 1; cursor: pointer;
+      border: 1px solid rgba(239, 68, 68, 0.22);
+      background: rgba(239, 68, 68, 0.08); color: #f87171;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0.8; transition: 0.2s;
     }
-    .btn-card-del:hover { background: rgba(239, 68, 68, 0.25); }
+    .btn-card-del:hover { background: rgba(239, 68, 68, 0.25); opacity: 1; }
     .view-only-tag {
       margin-top: 5px; text-align: center; font-size: 7px; color: var(--text-muted);
       background: rgba(255, 255, 255, 0.03); padding: 3px; border-radius: 4px;
@@ -642,7 +646,7 @@
       <div>Petugas: <b id="editInfoPetugas">-</b></div>
       <div>Kegiatan: <b id="editInfoJenis">-</b></div>
       <div>Waktu: <b id="editInfoWaktu">-</b></div>
-      <div style="font-size: 8.5px; margin-top: 3px; color: #fbbf24;">*Jika salah Jenis Kegiatan, tutup modal ini lalu tekan tombol Hapus.</div>
+      <div style="font-size: 8.5px; margin-top: 3px; color: #fbbf24;">*Jika salah Jenis Kegiatan, tutup modal ini lalu tekan ikon hapus kecil di kartu.</div>
     </div>
 
     <form id="editReportForm">
@@ -1272,7 +1276,6 @@
     document.getElementById('kategoriMitra').required = false;
     document.getElementById('plafond').required = false;
 
-    // Reset lampiran foto & GPS setiap kali berpindah jenis kegiatan agar tidak terbawa antar kegiatan
     fileInput.value = "";
     statusText.style.color = "var(--text-muted)";
     isLiveCameraMode = true;
@@ -1282,7 +1285,6 @@
     resetGPSState();
     startGPSPreWarm();
 
-    // Tombol Mode Upload File dihapus khusus untuk Uji Kelayakan; jenis kegiatan lain tetap dipertahankan
     if (jenis === 'UK VAL BM' || jenis === 'Akad Pencairan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
       containerSwitch.classList.remove('hidden');
       lblDefault.classList.add('hidden');
@@ -1452,7 +1454,6 @@
     btnSubmit.disabled = true; btnSubmit.innerText = "Memproses...";
 
     try {
-      // Pastikan titik GPS wajib terkunci sebelum laporan dikirim
       let gpsVal = document.getElementById('gps').value.trim();
       if (!gpsVal) {
         btnSubmit.innerText = "Mengunci Lokasi GPS...";
@@ -1799,15 +1800,29 @@
     const waktuStr = formatReadableDateTime(item.waktuKegiatan);
     const oldKet = item.keteranganKegiatan || item.keterangan || "";
 
-    const yakin = confirm(
-      `Hapus laporan ini?\n\n` +
+    // Konfirmasi Tahap 1: Verifikasi detail laporan
+    const langkah1 = confirm(
+      `⚠️ KONFIRMASI PENGHAPUSAN LAPORAN (1/2)\n\n` +
       `• Petugas: ${item.namaPetugas}\n` +
       `• Kegiatan: ${jenis}\n` +
       `• Waktu: ${waktuStr}\n\n` +
-      `Data yang dihapus akan hilang dari Riwayat, Analisa, dan Spreadsheet.`
+      `Data yang dihapus akan hilang permanen dari Riwayat, Analisa, dan Spreadsheet. Lanjutkan?`
     );
 
-    if (!yakin) return;
+    if (!langkah1) return;
+
+    // Konfirmasi Tahap 2: Wajib ketik kata HAPUS agar tidak terhapus akibat salah klik
+    const ketikKonfirmasi = prompt(
+      `⚠️ KONFIRMASI AKHIR (2/2)\n\n` +
+      `Untuk menghindari salah hapus, ketik kata HAPUS (huruf besar) lalu tekan OK:`
+    );
+
+    if (ketikKonfirmasi === null || ketikKonfirmasi.trim().toUpperCase() !== "HAPUS") {
+      if (ketikKonfirmasi !== null) {
+        alert("❌ Penghapusan dibatalkan karena kata konfirmasi tidak sesuai.");
+      }
+      return;
+    }
 
     if (item.isOfflinePending) {
       const itemId = item.clientId || `${item.namaPetugas}_${item.waktuKegiatan}_${item.jenisKegiatan}`;
@@ -2387,7 +2402,7 @@
       const actionFooterHtml = canUserModifyReport(item)
         ? `<div class="card-actions">
              <button type="button" class="btn-card-edit" onclick="openEditModal(${idx})">✏️ Edit</button>
-             <button type="button" class="btn-card-del" onclick="confirmDeleteReport(${idx})">🗑️ Hapus</button>
+             <button type="button" class="btn-card-del" title="Hapus Laporan" aria-label="Hapus Laporan" onclick="confirmDeleteReport(${idx})">🗑️</button>
            </div>`
         : `<div class="view-only-tag">🔒 Hanya Lihat</div>`;
 
