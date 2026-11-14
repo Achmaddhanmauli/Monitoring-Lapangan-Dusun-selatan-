@@ -1,11 +1,10 @@
-const CACHE_NAME = 'bpars-ai-v28';
+const CACHE_NAME = 'bpars-v29';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json'
 ];
 
-// 1. Install Service Worker & Cache Aset Utama
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -14,14 +13,12 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 2. Aktifkan & Hapus Cache Versi Lama
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('[Service Worker] Menghapus cache lama:', cache);
             return caches.delete(cache);
           }
         })
@@ -30,7 +27,6 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. Fetch Handler (Stale-While-Revalidate untuk aset lokal, abaikan Google Apps Script API)
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || event.request.url.includes('script.google.com')) {
     return;
@@ -46,9 +42,7 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => {
-        return cachedResponse;
-      });
+      }).catch(() => cachedResponse);
 
       return cachedResponse || fetchPromise;
     })
