@@ -77,6 +77,7 @@
       padding: 5px 12px; border-radius: 6px; font-weight: 800; cursor: pointer; transition: 0.2s;
     }
     .sync-btn:hover { background: #34d399; }
+    .sync-btn:disabled { opacity: 0.6; cursor: not-allowed; background: #64748b; color: #f8fafc; }
 
     .offline-indicator {
       background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3);
@@ -164,6 +165,7 @@
     }
     .card-title { font-weight: 850; color: var(--turquoise-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .badge-sync { background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
+    .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
     .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid var(--border-glass); }
     .map-link { display: inline-block; margin-top: 3px; font-size: 7.5px; font-weight: 700; color: var(--turquoise-blue); text-decoration: none; background: rgba(0, 188, 212, 0.1); padding: 2px 5px; border-radius: 4px; }
 
@@ -223,7 +225,7 @@
   <!-- KONTROL REFRESH & STATUS SINKRONISASI OFFLINE -->
   <div class="sync-bar">
     <span id="syncStatusText">Antrean Offline: 0 laporan</span>
-    <button type="button" class="sync-btn" onclick="manualSyncNow()">🔄 Sinkronkan Sekarang</button>
+    <button type="button" id="btnManualSync" class="sync-btn" onclick="manualSyncNow()">🔄 Sinkronkan Sekarang</button>
   </div>
 
   <div id="offlineIndicator" class="offline-indicator">⚠️ Mode Offline: Laporan disimpan sementara di perangkat</div>
@@ -464,6 +466,11 @@
   let activeJenisFilter = ""; 
   let selectedAnalisaJenis = "";
   let isLiveCameraMode = true;
+  let isSyncing = false; // KUNCI MUTEX ANTI-DUPLIKAT
+
+  function generateClientId() {
+    return 'rep_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+  }
 
   function getTodayYYYYMMDD() {
     const now = new Date();
@@ -520,10 +527,16 @@
     }
 
     fetchBackgroundData();
+    if (navigator.onLine) {
+      processOfflineQueue(false);
+    }
     startGPSPreWarm();
   });
 
-  window.addEventListener('online', () => { updateOnlineStatus(); syncOfflineReports(); });
+  window.addEventListener('online', () => { 
+    updateOnlineStatus(); 
+    processOfflineQueue(false); 
+  });
   window.addEventListener('offline', () => { updateOnlineStatus(); });
 
   function updateOnlineStatus() {
@@ -533,11 +546,35 @@
   }
 
   function updateOfflineQueueCounter() {
+    if (isSyncing) return;
     let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
     const textEl = document.getElementById('syncStatusText');
     if (textEl) {
       textEl.innerText = `Antrean Offline: ${offlineData.length} laporan`;
     }
+  }
+
+  function removeOfflineItemById(itemId) {
+    let currentQueue = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    let updatedQueue = currentQueue.filter(r => {
+      const rId = r.clientId || `${r.namaPetugas}_${r.waktuKegiatan}_${r.jenisKegiatan}`;
+      return rId !== itemId;
+    });
+    localStorage.setItem('offline_reports', JSON.stringify(updatedQueue));
+  }
+
+  function markClientIdAsSent(itemId) {
+    let sentIds = JSON.parse(localStorage.getItem('sent_report_ids') || '[]');
+    if (!sentIds.includes(itemId)) {
+      sentIds.push(itemId);
+      if (sentIds.length > 250) sentIds = sentIds.slice(-250);
+      localStorage.setItem('sent_report_ids', JSON.stringify(sentIds));
+    }
+  }
+
+  function isClientIdAlreadySent(itemId) {
+    let sentIds = JSON.parse(localStorage.getItem('sent_report_ids') || '[]');
+    return sentIds.includes(itemId);
   }
 
   function switchTab(tab) {
@@ -723,7 +760,7 @@
     );
   }
 
-  /* OPTIMASI KOMPRESI FOTO SANGAT RINGAN UNTUK ANTREAN OFFLINE */
+  /* KOMPRESI FOTO RINGAN UNTUK SINKRONISASI CEPAT */
   function compressImage(file, maxWidth = 600, maxHeight = 600, quality = 0.45) {
     return new Promise((resolve) => {
       const reader = new FileReader(); 
@@ -774,6 +811,13 @@
     }
   }
 
+  function saveToOfflineQueue(payload) {
+    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    offlineData.push(payload);
+    localStorage.setItem('offline_reports', JSON.stringify(offlineData));
+    updateOfflineQueueCounter();
+  }
+
   document.getElementById('reportForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btnSubmit = document.getElementById('btnSubmit');
@@ -785,6 +829,8 @@
       const gpsAccEl = document.getElementById('gpsAccuracy');
 
       const payload = {
+        clientId: generateClientId(),
+        isOfflinePending: true,
         action: "save_report",
         namaPetugas: document.getElementById('namaPetugas').value,
         jenisKegiatan: document.getElementById('jenisKegiatan').value,
@@ -799,19 +845,22 @@
       };
 
       if (navigator.onLine) {
-        await fetch(SCRIPT_URL, { 
-          method: 'POST', 
-          mode: 'no-cors', 
-          headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify(payload) 
-        }).catch(() => {});
-        alert("Laporan Berhasil Terkirim!");
+        try {
+          await fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+          });
+          markClientIdAsSent(payload.clientId);
+          alert("Laporan Berhasil Terkirim!");
+        } catch (networkErr) {
+          saveToOfflineQueue(payload);
+          alert("Sinyal terputus saat mengirim. Laporan otomatis disimpan di Antrean Offline!");
+        }
       } else {
-        let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-        offlineData.push(payload); 
-        localStorage.setItem('offline_reports', JSON.stringify(offlineData));
-        updateOfflineQueueCounter();
-        alert("Mode Offline: Laporan tersimpan di perangkat dan siap disinkronkan nanti.");
+        saveToOfflineQueue(payload);
+        alert("Mode Offline: Laporan tersimpan di perangkat dan akan otomatis disinkronkan saat online.");
       }
 
       document.getElementById('reportForm').reset(); 
@@ -831,72 +880,97 @@
     }
   });
 
-  /* TOMBOL MANUAL SYNC UNTUK MENGIRIM DATA DARI CACHE BROWSER KE SPREADSHEET */
-  async function manualSyncNow() {
-    if (!navigator.onLine) {
-      alert("⚠️ Perangkat Anda sedang offline. Hubungkan ke internet terlebih dahulu untuk menyinkronkan data.");
-      return;
-    }
-    
-    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-    if (offlineData.length === 0) {
-      alert("✅ Tidak ada antrean laporan offline di cache perangkat.");
-      return;
-    }
-
-    const btn = document.querySelector('.sync-btn');
-    if(btn) { btn.disabled = true; btn.innerText = "Mengirim..."; }
-
-    let unSyncData = [];
-    for (let data of offlineData) {
-      try {
-        await fetch(SCRIPT_URL, { 
-          method: 'POST', 
-          mode: 'no-cors', 
-          headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify(data) 
-        });
-      } catch (e) { 
-        unSyncData.push(data); 
-      }
-    }
-
-    if (unSyncData.length === 0) {
-      localStorage.removeItem('offline_reports');
-      alert("🎉 Semua antrean laporan offline berhasil dikirim ke spreadsheet!");
-      fetchBackgroundData();
-    } else {
-      localStorage.setItem('offline_reports', JSON.stringify(unSyncData));
-      alert(`⚠️ Sebagian laporan gagal terkirim. Sisa antrean: ${unSyncData.length}`);
-    }
-
-    updateOfflineQueueCounter();
-    if(btn) { btn.disabled = false; btn.innerText = "🔄 Sinkronkan Sekarang"; }
+  function manualSyncNow() {
+    processOfflineQueue(true);
   }
 
-  async function syncOfflineReports() {
+  /* FUNGSI TUNGGAL SINKRONISASI ANTI-DUPLIKAT (OTOMATIS & MANUAL) */
+  async function processOfflineQueue(isManual = false) {
+    if (isSyncing) {
+      if (isManual) {
+        alert("⏳ Sinkronisasi sedang berjalan di latar belakang. Mohon tunggu hingga selesai.");
+      }
+      return;
+    }
+
+    if (!navigator.onLine) {
+      if (isManual) {
+        alert("⚠️ Perangkat Anda sedang offline. Hubungkan ke internet terlebih dahulu untuk menyinkronkan data.");
+      }
+      return;
+    }
+
     let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
-    if (offlineData.length === 0) return;
+    const btn = document.getElementById('btnManualSync');
+    const textEl = document.getElementById('syncStatusText');
 
-    let unSyncData = [];
-    for (let data of offlineData) {
-      try {
-        await fetch(SCRIPT_URL, { 
-          method: 'POST', 
-          mode: 'no-cors', 
-          headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify(data) 
-        });
-      } catch (e) { unSyncData.push(data); }
+    if (offlineData.length === 0) {
+      if (isManual) {
+        if (btn) { btn.disabled = true; btn.innerText = "⏳ Memuat..."; }
+        if (textEl) textEl.innerText = "Memperbarui data dari server...";
+        await fetchBackgroundData();
+        if (btn) { btn.disabled = false; btn.innerText = "🔄 Sinkronkan Sekarang"; }
+        updateOfflineQueueCounter();
+        alert("✅ Tidak ada antrean offline. Data riwayat & analisa sudah diperbarui!");
+      }
+      return;
     }
 
-    if (unSyncData.length === 0) {
-      localStorage.removeItem('offline_reports');
-      fetchBackgroundData();
-    } else {
-      localStorage.setItem('offline_reports', JSON.stringify(unSyncData));
+    isSyncing = true;
+    if (btn) { btn.disabled = true; btn.innerText = "⏳ Mengirim..."; }
+    if (textEl) textEl.innerText = `Menyinkronkan ${offlineData.length} laporan...`;
+
+    let sentCount = 0;
+    let failCount = 0;
+
+    try {
+      const snapshotQueue = [...offlineData];
+
+      for (let item of snapshotQueue) {
+        const itemId = item.clientId || `${item.namaPetugas}_${item.waktuKegiatan}_${item.jenisKegiatan}`;
+
+        // Cek apakah item ini sudah terkirim sebelumnya
+        if (isClientIdAlreadySent(itemId)) {
+          removeOfflineItemById(itemId);
+          continue;
+        }
+
+        try {
+          await fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(item) 
+          });
+
+          // Langsung tandai terkirim & hapus item ini dari cache browser
+          markClientIdAsSent(itemId);
+          removeOfflineItemById(itemId);
+          sentCount++;
+
+          let remaining = JSON.parse(localStorage.getItem('offline_reports') || '[]').length;
+          if (textEl) textEl.innerText = `Menyinkronkan... (Sisa: ${remaining})`;
+        } catch (e) { 
+          failCount++;
+        }
+      }
+
+      if (sentCount > 0) {
+        await fetchBackgroundData();
+      }
+
+      if (isManual) {
+        if (failCount === 0 && sentCount > 0) {
+          alert(`🎉 ${sentCount} laporan offline berhasil dikirim ke spreadsheet!`);
+        } else if (failCount > 0) {
+          alert(`⚠️ ${sentCount} laporan terkirim, ${failCount} gagal (sinyal terputus). Silakan coba lagi nanti.`);
+        }
+      }
+    } finally {
+      isSyncing = false;
+      if (btn) { btn.disabled = false; btn.innerText = "🔄 Sinkronkan Sekarang"; }
+      updateOfflineQueueCounter();
     }
-    updateOfflineQueueCounter();
   }
 
   async function fetchBackgroundData() {
@@ -1414,6 +1488,10 @@
         gpsHtml = `<a href="https://www.google.com/maps?q=${item.gps}" target="_blank" class="map-link">📍 Buka Maps</a>`;
       }
 
+      let statusBadge = item.isOfflinePending 
+        ? `<span class="badge-pending" title="Menunggu Sinkronisasi">⏳</span>` 
+        : `<span class="badge-sync">✓</span>`;
+
       let readableTime = formatReadableDateTime(item.waktuKegiatan);
       let ketTeks = item.keteranganKegiatan || item.keterangan || "";
 
@@ -1421,7 +1499,7 @@
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
             <span class="card-title">${item.jenisKegiatan} ${katMitra}</span>
-            <span class="badge-sync">✓</span>
+            ${statusBadge}
           </div>
           <div style="color: var(--text-main); font-size: 8px; margin-bottom: 1px;"><b>Petugas:</b> ${item.namaPetugas}</div>
           <div style="color: var(--text-muted); font-size: 7.5px; margin-bottom: 1px;"><b>Waktu:</b> ${readableTime}</div>
