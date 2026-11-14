@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BPARS - Performance Activity Reporting System AI</title>
+  <title>BPARS - Performance Activity Reporting System</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4a154b">
   <style>
@@ -30,7 +30,7 @@
       background-image: radial-gradient(circle at 10% 10%, rgba(74, 21, 75, 0.25) 0%, transparent 40%),
                         radial-gradient(circle at 90% 90%, rgba(0, 140, 180, 0.2) 0%, transparent 40%);
       color: var(--text-main);
-      padding: 12px 8px 90px 8px; /* Padding bawah ekstra untuk dock AI Voice ergonomis */
+      padding: 12px 8px 30px 8px;
       display: flex;
       justify-content: center;
       min-height: 100vh;
@@ -50,12 +50,12 @@
       overflow-x: hidden;
     }
 
-    /* HEADER BANNER FUTURISTIC */
+    /* HEADER BANNER */
     .header {
       position: relative;
       text-align: center;
-      margin-bottom: 14px;
-      padding: 22px 14px;
+      margin-bottom: 12px;
+      padding: 20px 14px;
       background: linear-gradient(135deg, rgba(74, 21, 75, 0.85) 0%, rgba(15, 76, 129, 0.85) 60%, rgba(0, 140, 180, 0.85) 100%);
       border-radius: var(--radius-md);
       color: #ffffff;
@@ -63,34 +63,32 @@
       border: 1px solid rgba(255, 255, 255, 0.12);
       overflow: hidden;
     }
-    .header::before {
-      content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
-      pointer-events: none;
-    }
-    .header-content { position: relative; z-index: 2; }
-    .header h1 { font-size: 13px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; line-height: 1.3; margin-bottom: 3px; }
+    .header h1 { font-size: 13px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px; }
     .header p { font-size: 10px; opacity: 0.9; font-weight: 500; }
 
+    /* SYNC BAR & OFFLINE INDICATOR */
+    .sync-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-glass);
+      padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 10px; font-size: 9.5px;
+    }
+    .sync-btn {
+      background: var(--turquoise-blue); color: #0a0b10; border: none;
+      padding: 5px 12px; border-radius: 6px; font-weight: 800; cursor: pointer; transition: 0.2s;
+    }
+    .sync-btn:hover { background: #34d399; }
+
     .offline-indicator {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      color: #fbbf24;
-      font-size: 9.5px;
-      font-weight: 800;
-      padding: 6px;
-      text-align: center;
-      border-radius: var(--radius-sm);
-      margin-bottom: 10px;
-      display: none;
+      background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24; font-size: 9.5px; font-weight: 800; padding: 6px; text-align: center;
+      border-radius: var(--radius-sm); margin-bottom: 10px; display: none;
     }
     .offline-indicator.active { display: block; }
 
     /* NAV TABS */
     .nav-tabs {
       display: flex; gap: 6px; margin-bottom: 14px;
-      background: rgba(255, 255, 255, 0.04);
-      padding: 4px; border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04); padding: 4px; border-radius: 12px;
       border: 1px solid var(--border-glass);
     }
     .tab-btn {
@@ -100,8 +98,7 @@
     }
     .tab-btn.active {
       background: linear-gradient(135deg, var(--amartha-purple), var(--navy-blue));
-      color: #ffffff;
-      box-shadow: 0 4px 12px var(--amartha-purple-glow);
+      color: #ffffff; box-shadow: 0 4px 12px var(--amartha-purple-glow);
     }
 
     /* FORM STYLES */
@@ -109,176 +106,91 @@
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
     .form-control {
-      width: 100%; padding: 10px 12px;
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm);
-      font-size: 11.5px; background-color: rgba(255, 255, 255, 0.05);
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border-glass);
+      border-radius: var(--radius-sm); font-size: 11.5px; background-color: rgba(255, 255, 255, 0.05);
       color: var(--text-main); outline: none; transition: all 0.2s ease;
     }
-    .form-control:focus {
-      border-color: var(--turquoise-blue);
-      box-shadow: 0 0 0 3px var(--accent-glow);
-      background-color: rgba(255, 255, 255, 0.08);
-    }
+    .form-control:focus { border-color: var(--turquoise-blue); box-shadow: 0 0 0 3px var(--accent-glow); }
     .form-control option { background-color: #121420; color: var(--text-main); }
     textarea.form-control { resize: vertical; height: 62px; }
 
-    /* MODE CAMERA / UPLOAD TOGGLE */
     .mode-switch-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .mode-switch-btn {
       background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-glass);
       padding: 4px 10px; border-radius: 6px; font-size: 9px; font-weight: 700;
-      color: var(--turquoise-blue); cursor: pointer; transition: 0.2s;
+      color: var(--turquoise-blue); cursor: pointer;
     }
-    .mode-switch-btn:hover { background: rgba(0, 188, 212, 0.15); }
-
-    /* DASHED BOX */
     .camera-box {
       border: 2px dashed rgba(255, 255, 255, 0.15); border-radius: var(--radius-sm);
       background: rgba(255, 255, 255, 0.02); padding: 16px; text-align: center;
-      cursor: pointer; transition: 0.2s; margin-bottom: 12px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      cursor: pointer; margin-bottom: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
     }
-    .camera-box:hover { border-color: var(--turquoise-blue); background: rgba(0, 188, 212, 0.03); }
     .camera-box span { font-size: 10.5px; font-weight: 600; color: var(--text-muted); }
 
-    /* TOMBOL GPS & SUBMIT */
     .btn-gps {
-      width: 100%; padding: 11px; background: rgba(255, 255, 255, 0.06);
-      color: var(--text-main); border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm); font-size: 11px; font-weight: 700;
-      cursor: pointer; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; gap: 6px; transition: 0.2s;
+      width: 100%; padding: 11px; background: rgba(255, 255, 255, 0.06); color: var(--text-main);
+      border: 1px solid var(--border-glass); border-radius: var(--radius-sm); font-size: 11px; font-weight: 700;
+      cursor: pointer; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; gap: 6px;
     }
-    .btn-gps:hover { background: rgba(255, 255, 255, 0.1); }
-    .btn-gps:disabled { opacity: 0.6; cursor: not-allowed; }
-
     .btn-submit {
       width: 100%; padding: 13px;
       background: linear-gradient(135deg, var(--amartha-purple) 0%, var(--navy-blue) 50%, var(--turquoise-blue) 100%);
-      color: white; border: none; border-radius: var(--radius-sm);
-      font-size: 12.5px; font-weight: 800; letter-spacing: 0.4px;
+      color: white; border: none; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 800;
       cursor: pointer; margin-top: 4px; box-shadow: 0 4px 15px var(--amartha-purple-glow);
     }
-    .btn-submit:disabled { opacity: 0.6; box-shadow: none; cursor: not-allowed; }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* ERGONOMIC FLOATING AI VOICE DOCK (BOTTOM) */
-    .ai-voice-dock {
-      position: fixed; bottom: 0; left: 0; width: 100%;
-      background: rgba(10, 11, 16, 0.94); backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(0, 188, 212, 0.3);
-      padding: 10px 14px 14px 14px; z-index: 999;
-      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.6);
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-    }
-    .ai-dock-header { display: flex; justify-content: space-between; width: 100%; max-width: 480px; align-items: center; }
-    .ai-dock-title { font-size: 10px; font-weight: 800; color: var(--turquoise-blue); letter-spacing: 0.8px; text-transform: uppercase; display: flex; align-items: center; gap: 4px; }
-    .ai-timer { font-size: 10px; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 2px 6px; border-radius: 4px; display: none; }
-    
-    .ai-mic-btn {
-      width: 52px; height: 52px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--turquoise-blue), var(--navy-blue));
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      color: white; font-size: 20px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 20px rgba(0, 188, 212, 0.4);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .ai-mic-btn.recording {
-      background: linear-gradient(135deg, #ef4444, #b91c1c);
-      box-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
-      animation: pulseMic 1.5s infinite;
-    }
-    @keyframes pulseMic {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-      70% { transform: scale(1.08); box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
-      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-    }
-
-    .waveform-canvas {
-      width: 100%; max-width: 480px; height: 26px;
-      background: rgba(0, 0, 0, 0.3); border-radius: 6px; display: none;
-    }
-    .ai-demo-btns { display: flex; gap: 4px; overflow-x: auto; width: 100%; max-width: 480px; padding-bottom: 2px; }
-    .ai-demo-btns::-webkit-scrollbar { display: none; }
-    .ai-demo-pill {
-      background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-glass);
-      color: var(--text-muted); padding: 3px 8px; border-radius: 99px;
-      font-size: 8px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: 0.2s;
-    }
-    .ai-demo-pill:hover { background: rgba(0, 188, 212, 0.15); color: var(--turquoise-blue); border-color: var(--turquoise-blue); }
-
-    /* FILTER BOX & SUMMARY */
-    .filter-box {
-      background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-glass);
-      padding: 10px; border-radius: var(--radius-md); margin-bottom: 12px;
-    }
+    /* FILTER & SUMMARY */
+    .filter-box { background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-glass); padding: 10px; border-radius: var(--radius-md); margin-bottom: 12px; }
     .filter-row { display: flex; gap: 6px; align-items: flex-end; }
     .filter-item { flex: 1; }
     .filter-item label { display: block; font-size: 9.5px; font-weight: 700; margin-bottom: 2px; color: var(--text-muted); }
-    .btn-reset { padding: 6px 10px; background: var(--navy-blue); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; font-weight: 600; height: 29px; }
+    .btn-reset { padding: 6px 10px; background: var(--navy-blue); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; height: 29px; }
 
     .summary-box { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 14px; }
     .summary-card {
-      background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-sm);
-      padding: 5px 2px; border: 1px solid var(--border-glass);
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      cursor: pointer; user-select: none; transition: all 0.2s ease; min-height: 42px;
+      background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-sm); padding: 5px 2px;
+      border: 1px solid var(--border-glass); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; min-height: 42px;
     }
-    .summary-card.active-card { border-color: var(--turquoise-blue) !important; background: rgba(0, 188, 212, 0.1) !important; box-shadow: 0 0 0 2px rgba(0, 188, 212, 0.2); }
-    .summary-card h4 { font-size: 5.5px; color: var(--turquoise-blue); text-transform: uppercase; font-weight: 800; letter-spacing: 0.1px; margin-bottom: 1px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+    .summary-card.active-card { border-color: var(--turquoise-blue) !important; background: rgba(0, 188, 212, 0.1) !important; }
+    .summary-card h4 { font-size: 5.5px; color: var(--turquoise-blue); text-transform: uppercase; font-weight: 800; margin-bottom: 1px; text-align: center; }
     .summary-card p { font-size: 10px; font-weight: 850; color: #ffffff; }
 
-    /* GRID LAPORAN */
+    /* REPORT GRID */
     .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
     .card-item {
-      background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm); padding: 7px; font-size: 8.5px;
-      display: flex; flex-direction: column; justify-content: space-between; height: 100%; overflow: hidden; transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-sm);
+      padding: 7px; font-size: 8.5px; display: flex; flex-direction: column; justify-content: space-between; height: 100%;
     }
-    .card-title { font-weight: 850; color: var(--turquoise-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+    .card-title { font-weight: 850; color: var(--turquoise-blue); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .badge-sync { background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 1px 4px; border-radius: 6px; font-size: 7px; font-weight: 800; }
-    .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid var(--border-glass); background: rgba(0,0,0,0.2); }
+    .img-preview { width: 100%; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 4px; cursor: pointer; border: 1px solid var(--border-glass); }
     .map-link { display: inline-block; margin-top: 3px; font-size: 7.5px; font-weight: 700; color: var(--turquoise-blue); text-decoration: none; background: rgba(0, 188, 212, 0.1); padding: 2px 5px; border-radius: 4px; }
-    .map-link:hover { background: rgba(0, 188, 212, 0.2); }
 
-    /* MODAL POPUP */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 16, 0.85); display: none; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(4px); }
-    .modal-overlay.active { display: flex !important; }
-    .modal-content { background: var(--bg-card); border: 1px solid var(--border-glass); padding: 8px; border-radius: var(--radius-md); max-width: 88vw; max-height: 60vh; position: relative; }
-    .modal-content img { max-width: 100%; max-height: 50vh; object-fit: contain; border-radius: var(--radius-sm); }
-    .modal-close { position: absolute; top: -10px; right: -10px; background: #ef4444; color: white; border: none; width: 26px; height: 26px; border-radius: 50%; font-weight: 800; cursor: pointer; }
-
-    /* DASHBOARD ANALISA */
+    /* ANALISA DASHBOARD */
     .analisa-card-main {
       background: linear-gradient(135deg, rgba(74, 21, 75, 0.75) 0%, rgba(27, 54, 93, 0.85) 100%);
       color: white; padding: 20px 12px; border-radius: var(--radius-md); margin-bottom: 16px; text-align: center;
       border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 20px rgba(0,0,0,0.4);
     }
-    .analisa-card-main h4 { font-size: 9.5px; opacity: 0.9; margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;}
-    .analisa-card-main h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px;}
-    .analisa-card-main p { font-size: 10px; opacity: 0.9; font-weight: 500; margin-bottom: 3px;}
-    .analisa-badge { background: rgba(255,255,255,0.15); display: inline-block; padding: 6px 16px; border-radius: 20px; margin-top: 10px; font-size: 9.5px; font-weight:700; border: 1px solid rgba(255,255,255,0.2); }
+    .analisa-card-main h4 { font-size: 9.5px; opacity: 0.9; margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
+    .analisa-card-main h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .analisa-badge { background: rgba(255,255,255,0.15); display: inline-block; padding: 6px 16px; border-radius: 20px; margin-top: 10px; font-size: 9.5px; font-weight:700; }
 
-    /* GRAFIK TIM PER PETUGAS INLINE CARD */
     .chart-container { margin-top: 14px; background: rgba(0, 0, 0, 0.25); border-radius: var(--radius-sm); padding: 12px 10px; text-align: left; border: 1px solid var(--border-glass); }
-    .chart-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; color: var(--turquoise-blue); text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.2); padding-bottom: 4px; }
+    .chart-title { font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; color: var(--turquoise-blue); text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.2); padding-bottom: 4px; }
     .chart-row { margin-bottom: 8px; }
-    .chart-row:last-child { margin-bottom: 0; }
     .chart-label-group { display: flex; justify-content: space-between; font-size: 9px; font-weight: 700; margin-bottom: 2px; }
-    .chart-officer-name { color: #ffffff; }
     .chart-officer-val { color: var(--turquoise-blue); font-weight: 800; }
     .chart-bar-bg { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; }
-    .chart-bar-fill { height: 100%; background: linear-gradient(90deg, var(--turquoise-blue), #34d399); border-radius: 3px; transition: width 0.6s ease; }
+    .chart-bar-fill { height: 100%; background: linear-gradient(90deg, var(--turquoise-blue), #34d399); border-radius: 3px; }
     .chart-sub-detail { font-size: 7.5px; opacity: 0.85; margin-top: 2px; color: var(--text-muted); }
 
     .stat-item {
       background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass);
-      border-radius: 8px; padding: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s ease;
+      border-radius: 8px; padding: 10px; margin-bottom: 10px; cursor: pointer; transition: 0.2s;
     }
-    .stat-item:hover { border-color: var(--turquoise-blue); }
-    .stat-item.active-stat { border-color: var(--turquoise-blue) !important; box-shadow: 0 0 0 2.5px rgba(0, 188, 212, 0.2); background: rgba(0, 188, 212, 0.06); }
-
+    .stat-item.active-stat { border-color: var(--turquoise-blue) !important; background: rgba(0, 188, 212, 0.06) !important; }
     .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .stat-title { font-size: 10.5px; font-weight: 800; color: var(--text-main); }
     .stat-count { font-size: 10.5px; font-weight: 800; color: var(--turquoise-blue); }
@@ -287,9 +199,15 @@
     .stat-bar-fill { height: 100%; border-radius: 4px; width: 0%; transition: width 1s ease-in-out; }
 
     .hidden { display: none !important; }
-    
     .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(0, 188, 212, 0.3); border-radius: 50%; border-top-color: var(--turquoise-blue); animation: spin 1s ease-in-out infinite; margin-top: 20px;}
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* MODAL */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 11, 16, 0.85); display: none; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(4px); }
+    .modal-overlay.active { display: flex !important; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border-glass); padding: 8px; border-radius: var(--radius-md); max-width: 88vw; max-height: 60vh; position: relative; }
+    .modal-content img { max-width: 100%; max-height: 50vh; object-fit: contain; border-radius: var(--radius-sm); }
+    .modal-close { position: absolute; top: -10px; right: -10px; background: #ef4444; color: white; border: none; width: 26px; height: 26px; border-radius: 50%; font-weight: 800; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -300,6 +218,12 @@
       <h1>PERFORMANCE ACTIVITY REPORTING SYSTEM</h1>
       <p>Dusun Selatan - Created by : Zidan</p>
     </div>
+  </div>
+
+  <!-- KONTROL REFRESH & STATUS SINKRONISASI OFFLINE -->
+  <div class="sync-bar">
+    <span id="syncStatusText">Antrean Offline: 0 laporan</span>
+    <button type="button" class="sync-btn" onclick="manualSyncNow()">🔄 Sinkronkan Sekarang</button>
   </div>
 
   <div id="offlineIndicator" class="offline-indicator">⚠️ Mode Offline: Laporan disimpan sementara di perangkat</div>
@@ -524,19 +448,6 @@
 
 </div>
 
-<!-- ERGONOMIC FLOATING AI VOICE DOCK (BOTTOM) -->
-<div class="ai-voice-dock">
-  <div class="ai-dock-header">
-    <div class="ai-dock-title"><span>🎙️ AI Voice Assistant</span> <span id="aiTimer" class="ai-timer">03:00</span></div>
-    <div class="ai-demo-btns">
-      <button class="ai-demo-pill" onclick="simulateVoiceDemo('fatimah')">Demo: Uji Kelayakan</button>
-      <button class="ai-demo-pill" onclick="simulateVoiceDemo('abdul')">Demo: Penagihan</button>
-    </div>
-  </div>
-  <canvas id="audioWaveform" class="waveform-canvas"></canvas>
-  <button type="button" id="aiMicBtn" class="ai-mic-btn" onclick="toggleVoiceRecording()">🎙️</button>
-</div>
-
 <!-- MODAL FOTO -->
 <div id="photoModal" class="modal-overlay" onclick="closeModal()">
   <div class="modal-content" onclick="event.stopPropagation()">
@@ -553,7 +464,6 @@
   let activeJenisFilter = ""; 
   let selectedAnalisaJenis = "";
   let isLiveCameraMode = true;
-  let isRecording = false, recordingTimer = null, timeLeft = 180;
 
   function getTodayYYYYMMDD() {
     const now = new Date();
@@ -599,6 +509,7 @@
 
     populatePetugasDropdown();
     updateOnlineStatus();
+    updateOfflineQueueCounter();
     
     try {
       allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
@@ -621,6 +532,14 @@
     else { indicator.classList.remove('active'); }
   }
 
+  function updateOfflineQueueCounter() {
+    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    const textEl = document.getElementById('syncStatusText');
+    if (textEl) {
+      textEl.innerText = `Antrean Offline: ${offlineData.length} laporan`;
+    }
+  }
+
   function switchTab(tab) {
     const btns = document.querySelectorAll('.tab-btn');
     const tabs = document.querySelectorAll('.tab-content');
@@ -641,75 +560,6 @@
       document.getElementById('tab-analisa').classList.remove('hidden'); 
       setTimeout(() => triggerRenderAnalisa(), 10);
     }
-  }
-
-  /* MODUL AI VOICE ASSISTANT */
-  function toggleVoiceRecording() {
-    const btn = document.getElementById('aiMicBtn');
-    const timerEl = document.getElementById('aiTimer');
-    const canvas = document.getElementById('audioWaveform');
-
-    isRecording = !isRecording;
-    if (isRecording) {
-      btn.classList.add('recording');
-      btn.innerHTML = "⏹️";
-      timerEl.style.display = "block";
-      canvas.style.display = "block";
-      timeLeft = 180;
-      startWaveformAnimation();
-      
-      recordingTimer = setInterval(() => {
-        timeLeft--;
-        let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-        let s = (timeLeft % 60).toString().padStart(2, '0');
-        timerEl.innerText = `${m}:${s}`;
-        if (timeLeft <= 0) toggleVoiceRecording();
-      }, 1000);
-    } else {
-      btn.classList.remove('recording');
-      btn.innerHTML = "🎙️";
-      timerEl.style.display = "none";
-      canvas.style.display = "none";
-      clearInterval(recordingTimer);
-      alert("🎙️ Rekaman suara selesai dan diurai otomatis oleh AI!");
-    }
-  }
-
-  function startWaveformAnimation() {
-    const canvas = document.getElementById('audioWaveform');
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
-    function draw() {
-      if (!isRecording) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#00bcd4";
-      for (let i = 0; i < 30; i++) {
-        let h = Math.random() * 20 + 4;
-        ctx.fillRect(i * 14 + 4, (canvas.height - h) / 2, 8, h);
-      }
-      requestAnimationFrame(draw);
-    }
-    draw();
-  }
-
-  function simulateVoiceDemo(type) {
-    if (type === 'fatimah') {
-      document.getElementById('namaPetugas').value = "Fatimah";
-      document.getElementById('jenisKegiatan').value = "Uji Kelayakan";
-      toggleFormKegiatan();
-      document.getElementById('kategoriMitra').value = "NTB";
-      document.getElementById('plafond').value = "5000000";
-      document.getElementById('keteranganKegiatan').value = "[AI Voice Parsed] Uji kelayakan mitra baru Fatimah plafond 5 juta lancar.";
-    } else {
-      document.getElementById('namaPetugas').value = "Abdul Hamit";
-      document.getElementById('jenisKegiatan').value = "Hasil Penagihan PAR";
-      toggleFormKegiatan();
-      document.getElementById('nominalPenagihanFormat').value = "Rp 1.500.000";
-      document.getElementById('nominalPenagihanRaw').value = "1500000";
-      document.getElementById('keteranganKegiatan').value = "[AI Voice Parsed] Penagihan PAR Abdul Hamit masuk Rp 1.500.000.";
-    }
-    switchTab('input');
-    alert("✨ AI Voice berhasil mengurai dan mengisi formulir otomatis!");
   }
 
   function toggleCameraMode() {
@@ -873,7 +723,8 @@
     );
   }
 
-  function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.6) {
+  /* OPTIMASI KOMPRESI FOTO SANGAT RINGAN UNTUK ANTREAN OFFLINE */
+  function compressImage(file, maxWidth = 600, maxHeight = 600, quality = 0.45) {
     return new Promise((resolve) => {
       const reader = new FileReader(); 
       reader.readAsDataURL(file);
@@ -959,7 +810,8 @@
         let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
         offlineData.push(payload); 
         localStorage.setItem('offline_reports', JSON.stringify(offlineData));
-        alert("Mode Offline: Laporan tersimpan sementara di perangkat.");
+        updateOfflineQueueCounter();
+        alert("Mode Offline: Laporan tersimpan di perangkat dan siap disinkronkan nanti.");
       }
 
       document.getElementById('reportForm').reset(); 
@@ -979,6 +831,49 @@
     }
   });
 
+  /* TOMBOL MANUAL SYNC UNTUK MENGIRIM DATA DARI CACHE BROWSER KE SPREADSHEET */
+  async function manualSyncNow() {
+    if (!navigator.onLine) {
+      alert("⚠️ Perangkat Anda sedang offline. Hubungkan ke internet terlebih dahulu untuk menyinkronkan data.");
+      return;
+    }
+    
+    let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+    if (offlineData.length === 0) {
+      alert("✅ Tidak ada antrean laporan offline di cache perangkat.");
+      return;
+    }
+
+    const btn = document.querySelector('.sync-btn');
+    if(btn) { btn.disabled = true; btn.innerText = "Mengirim..."; }
+
+    let unSyncData = [];
+    for (let data of offlineData) {
+      try {
+        await fetch(SCRIPT_URL, { 
+          method: 'POST', 
+          mode: 'no-cors', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify(data) 
+        });
+      } catch (e) { 
+        unSyncData.push(data); 
+      }
+    }
+
+    if (unSyncData.length === 0) {
+      localStorage.removeItem('offline_reports');
+      alert("🎉 Semua antrean laporan offline berhasil dikirim ke spreadsheet!");
+      fetchBackgroundData();
+    } else {
+      localStorage.setItem('offline_reports', JSON.stringify(unSyncData));
+      alert(`⚠️ Sebagian laporan gagal terkirim. Sisa antrean: ${unSyncData.length}`);
+    }
+
+    updateOfflineQueueCounter();
+    if(btn) { btn.disabled = false; btn.innerText = "🔄 Sinkronkan Sekarang"; }
+  }
+
   async function syncOfflineReports() {
     let offlineData = JSON.parse(localStorage.getItem('offline_reports') || '[]');
     if (offlineData.length === 0) return;
@@ -997,11 +892,11 @@
 
     if (unSyncData.length === 0) {
       localStorage.removeItem('offline_reports');
-      alert("Antrean offline berhasil disinkronisasi ke server!");
       fetchBackgroundData();
     } else {
       localStorage.setItem('offline_reports', JSON.stringify(unSyncData));
     }
+    updateOfflineQueueCounter();
   }
 
   async function fetchBackgroundData() {
@@ -1016,6 +911,7 @@
       
       triggerFilterReport();
       triggerRenderAnalisa();
+      updateOfflineQueueCounter();
     } catch (err) {}
   }
 
