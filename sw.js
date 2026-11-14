@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bpars-v49';
+const CACHE_NAME = 'bpars-v50';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
