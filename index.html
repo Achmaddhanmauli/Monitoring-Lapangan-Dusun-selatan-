@@ -81,6 +81,18 @@
       padding: 4px 8px; border-radius: 6px; font-size: 9px; font-weight: 800; cursor: pointer;
     }
 
+    .viewer-info-banner {
+      background: rgba(0, 188, 212, 0.1);
+      border: 1px solid rgba(0, 188, 212, 0.28);
+      color: #cbd5e1;
+      font-size: 9.5px;
+      line-height: 1.4;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+    .viewer-info-banner b { color: var(--turquoise-blue); }
+
     .sync-bar {
       display: flex; justify-content: space-between; align-items: center;
       background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-glass);
@@ -141,11 +153,14 @@
       margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-glass); text-align: center;
     }
     .btn-viewer-mode {
-      width: 100%; padding: 10px; background: rgba(0, 188, 212, 0.12);
-      color: var(--turquoise-blue); border: 1px solid rgba(0, 188, 212, 0.35);
+      width: 100%; padding: 11px; background: rgba(0, 188, 212, 0.14);
+      color: var(--turquoise-blue); border: 1px solid rgba(0, 188, 212, 0.4);
       border-radius: var(--radius-sm); font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.2s;
     }
-    .btn-viewer-mode:hover { background: rgba(0, 188, 212, 0.22); }
+    .btn-viewer-mode:hover { background: rgba(0, 188, 212, 0.24); }
+    .viewer-hint {
+      font-size: 9px; color: var(--text-muted); margin-top: 6px;
+    }
 
     .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
     .form-group { margin-bottom: 12px; }
@@ -348,9 +363,10 @@
   </form>
 
   <div class="viewer-access-box">
-    <button type="button" class="btn-viewer-mode" onclick="enterViewerMode()">
+    <button type="button" id="btnEnterViewer" class="btn-viewer-mode" onclick="enterViewerMode()">
       🌐 Akses untuk Umum
     </button>
+    <div class="viewer-hint">Lihat riwayat laporan petugas & gunakan filter analisa data tanpa login PIN</div>
   </div>
 </div>
 
@@ -368,6 +384,10 @@
       <span id="sessionRoleBadge" class="role-badge role-bp">BP</span>
     </div>
     <button type="button" id="btnLogoutAccount" class="btn-logout" onclick="logoutAccount()">🚪 Keluar</button>
+  </div>
+
+  <div id="viewerInfoBanner" class="viewer-info-banner hidden">
+    🌐 <b>Mode Akses Umum:</b> Pilih tab <b>Riwayat</b> untuk melihat detail inputan, foto, & lokasi GPS petugas, atau tab <b>Analisa Data</b> untuk memfilter rekapitulasi kinerja.
   </div>
 
   <div class="sync-bar">
@@ -696,6 +716,20 @@
       .replace(/'/g, "'");
   }
 
+  function isSameReportRecord(a, b) {
+    if (!a || !b) return false;
+    if (a === b) return true;
+    if (a.clientId && b.clientId) {
+      return String(a.clientId).trim() === String(b.clientId).trim();
+    }
+    return (
+      String(a.namaPetugas || '').trim().toLowerCase() === String(b.namaPetugas || '').trim().toLowerCase() &&
+      String(a.jenisKegiatan || '').trim() === String(b.jenisKegiatan || '').trim() &&
+      String(a.waktuKegiatan || '').trim() === String(b.waktuKegiatan || '').trim() &&
+      String(a.fotoUrl || '').trim() === String(b.fotoUrl || '').trim()
+    );
+  }
+
   const OFFLINE_DB_NAME = 'bpars_offline_db';
   const OFFLINE_STORE_NAME = 'offline_reports';
 
@@ -824,10 +858,22 @@
   }
 
   async function enterViewerMode() {
-    saveUserSession("Pengguna Umum", "VIEWER");
-    applySessionToAppUI();
-    await initializeAppDataAfterLogin();
-    switchTab('analisa');
+    const btnViewer = document.getElementById('btnEnterViewer');
+    if (btnViewer) {
+      btnViewer.disabled = true;
+      btnViewer.innerText = "⏳ Memuat Data Publik...";
+    }
+    try {
+      saveUserSession("Pengguna Umum", "VIEWER");
+      applySessionToAppUI();
+      switchTab('report');
+      await initializeAppDataAfterLogin(true);
+    } finally {
+      if (btnViewer) {
+        btnViewer.disabled = false;
+        btnViewer.innerText = "🌐 Akses untuk Umum";
+      }
+    }
   }
 
   function switchAuthMode(mode) {
@@ -872,15 +918,23 @@
     const badge = document.getElementById('sessionRoleBadge');
     const btnLogout = document.getElementById('btnLogoutAccount');
     const navTabInput = document.getElementById('navTabInput');
+    const viewerBanner = document.getElementById('viewerInfoBanner');
+    const btnSync = document.getElementById('btnManualSync');
+    const syncText = document.getElementById('syncStatusText');
 
     if (isViewer) {
-      if (badge) { badge.innerText = 'Akses Umum (Hanya Lihat)'; badge.className = 'role-badge role-viewer'; }
+      if (badge) { badge.innerText = 'Akses Umum (Lihat Data)'; badge.className = 'role-badge role-viewer'; }
       if (btnLogout) btnLogout.innerText = '🔑 Login Petugas';
       if (navTabInput) navTabInput.classList.add('hidden');
+      if (viewerBanner) viewerBanner.classList.remove('hidden');
+      if (syncText) syncText.innerText = 'Data Laporan Server (Publik)';
+      if (btnSync) btnSync.innerText = '🔄 Muat Ulang Data';
     } else {
       if (badge) { badge.innerText = isBM ? 'BM (Full Akses)' : 'Staf BP'; badge.className = `role-badge ${isBM ? 'role-bm' : 'role-bp'}`; }
       if (btnLogout) btnLogout.innerText = '🚪 Keluar';
       if (navTabInput) navTabInput.classList.remove('hidden');
+      if (viewerBanner) viewerBanner.classList.add('hidden');
+      if (btnSync) btnSync.innerText = '🔄 Sinkronkan Sekarang';
 
       const selectInputPetugas = document.getElementById('namaPetugas');
       if (selectInputPetugas) {
@@ -940,7 +994,7 @@
         if (result.status === "success") {
           saveUserSession(result.namaPetugas, result.role);
           applySessionToAppUI();
-          await initializeAppDataAfterLogin();
+          await initializeAppDataAfterLogin(false);
           switchTab('input');
         } else if (result.status === "not_registered") {
           alert("ℹ️ " + (result.message || "Akun belum mendaftarkan PIN. Silakan daftar PIN terlebih dahulu."));
@@ -995,7 +1049,7 @@
           saveUserSession(result.namaPetugas, result.role);
           alert(`✅ PIN untuk ${result.namaPetugas} berhasil didaftarkan!\nHP Anda sekarang sudah masuk otomatis.`);
           applySessionToAppUI();
-          await initializeAppDataAfterLogin();
+          await initializeAppDataAfterLogin(false);
           switchTab('input');
         } else if (result.status === "already_registered") {
           alert("ℹ️ " + result.message);
@@ -1050,7 +1104,7 @@
     return "";
   }
 
-  async function initializeAppDataAfterLogin() {
+  async function initializeAppDataAfterLogin(waitForFetch = false) {
     const waktuGiat = document.getElementById('waktuKegiatan');
     if (waktuGiat) {
       const now = new Date();
@@ -1077,11 +1131,21 @@
       allReports = [];
     }
 
-    fetchBackgroundData();
-    if (navigator.onLine) {
-      processOfflineQueue(false);
+    if (allReports.length > 0) {
+      await triggerFilterReport();
+      await triggerRenderAnalisa();
     }
+
+    if (waitForFetch || allReports.length === 0) {
+      await fetchBackgroundData();
+    } else {
+      fetchBackgroundData();
+    }
+
     if (currentUser && currentUser.role !== 'VIEWER') {
+      if (navigator.onLine) {
+        processOfflineQueue(false);
+      }
       startGPSPreWarm();
     }
   }
@@ -1091,9 +1155,11 @@
       const isLoggedIn = loadSavedSession();
       applySessionToAppUI();
       if (isLoggedIn) {
-        await initializeAppDataAfterLogin();
         if (currentUser && currentUser.role === 'VIEWER') {
-          switchTab('analisa');
+          switchTab('report');
+          await initializeAppDataAfterLogin(true);
+        } else {
+          await initializeAppDataAfterLogin(false);
         }
       }
     } catch (err) {
@@ -1105,7 +1171,11 @@
 
   window.addEventListener('online', () => { 
     updateOnlineStatus(); 
-    if (currentUser) processOfflineQueue(false); 
+    if (currentUser && currentUser.role !== 'VIEWER') {
+      processOfflineQueue(false); 
+    } else if (currentUser && currentUser.role === 'VIEWER') {
+      fetchBackgroundData();
+    }
   });
   window.addEventListener('offline', () => { updateOnlineStatus(); });
 
@@ -1118,11 +1188,16 @@
 
   async function updateOfflineQueueCounter() {
     if (isSyncing) return;
-    const offlineData = await getAllOfflineReports();
     const textEl = document.getElementById('syncStatusText');
-    if (textEl) {
-      textEl.innerText = `Antrean Offline: ${offlineData.length} laporan`;
+    if (!textEl) return;
+
+    if (currentUser && currentUser.role === 'VIEWER') {
+      textEl.innerText = `Data Server: ${allReports.length} laporan termuat`;
+      return;
     }
+
+    const offlineData = await getAllOfflineReports();
+    textEl.innerText = `Antrean Offline: ${offlineData.length} laporan`;
   }
 
   function markClientIdAsSent(itemId) {
@@ -1141,7 +1216,7 @@
 
   function switchTab(tab) {
     if (tab === 'input' && currentUser && currentUser.role === 'VIEWER') {
-      tab = 'analisa';
+      tab = 'report';
     }
 
     const btns = document.querySelectorAll('.tab-btn');
@@ -1531,21 +1606,34 @@
   async function processOfflineQueue(isManual = false) {
     if (isSyncing) {
       if (isManual) {
-        alert("⏳ Sinkronisasi sedang berjalan di latar belakang. Mohon tunggu hingga selesai.");
+        alert("⏳ Pembaruan data sedang berjalan. Mohon tunggu hingga selesai.");
       }
       return;
     }
 
     if (!navigator.onLine) {
       if (isManual) {
-        alert("⚠️ Perangkat Anda sedang offline. Hubungkan ke internet terlebih dahulu untuk menyinkronkan data.");
+        alert("⚠️ Perangkat Anda sedang offline. Hubungkan ke internet terlebih dahulu.");
+      }
+      return;
+    }
+
+    const btn = document.getElementById('btnManualSync');
+    const textEl = document.getElementById('syncStatusText');
+
+    if (currentUser && currentUser.role === 'VIEWER') {
+      if (isManual) {
+        if (btn) { btn.disabled = true; btn.innerText = "⏳ Memuat..."; }
+        if (textEl) textEl.innerText = "Mengambil laporan terbaru dari server...";
+        await fetchBackgroundData();
+        if (btn) { btn.disabled = false; btn.innerText = "🔄 Muat Ulang Data"; }
+        await updateOfflineQueueCounter();
+        alert("✅ Data riwayat & analisa terbaru berhasil dimuat!");
       }
       return;
     }
 
     const offlineData = await getAllOfflineReports();
-    const btn = document.getElementById('btnManualSync');
-    const textEl = document.getElementById('syncStatusText');
 
     if (offlineData.length === 0) {
       if (isManual) {
@@ -1619,12 +1707,12 @@
 
   async function fetchBackgroundData() {
     try {
-      const res = await fetch(SCRIPT_URL + "?limit=500&_t=" + new Date().getTime());
+      const res = await fetch(SCRIPT_URL + "?limit=2000&_t=" + new Date().getTime());
       const json = await res.json();
       allReports = json.data || [];
       onlineTargets = json.targets || {};
       
-      localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
+      localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 200)));
       localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
       
       await triggerFilterReport();
@@ -1649,7 +1737,7 @@
       return;
     }
 
-    editingTargetItem = item;
+    editingTargetItem = { ...item };
     const jenis = (item.jenisKegiatan || '').trim();
     const ketLama = item.keteranganKegiatan || item.keterangan || "";
 
@@ -1776,13 +1864,17 @@
         const result = await res.json();
 
         if (result.status === "updated") {
-          editingTargetItem.kategoriMitra = newKategori;
-          editingTargetItem.plafond = newPlafond;
-          editingTargetItem.nominalPenagihan = newPenagihan;
-          editingTargetItem.keteranganKegiatan = newKet;
-          editingTargetItem.keterangan = newKet;
+          allReports.forEach(r => {
+            if (isSameReportRecord(r, editingTargetItem)) {
+              r.kategoriMitra = newKategori;
+              r.plafond = newPlafond;
+              r.nominalPenagihan = newPenagihan;
+              r.keteranganKegiatan = newKet;
+              r.keterangan = newKet;
+            }
+          });
 
-          localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
+          localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 200)));
 
           closeEditModal();
           await triggerFilterReport();
@@ -1802,12 +1894,13 @@
   }
 
   async function confirmDeleteReport(idx) {
-    const item = currentRenderedReports[idx];
-    if (!item || !canUserModifyReport(item)) {
+    const rawItem = currentRenderedReports[idx];
+    if (!rawItem || !canUserModifyReport(rawItem)) {
       alert("⛔ Anda hanya dapat menghapus laporan atas nama Anda sendiri.");
       return;
     }
 
+    const item = { ...rawItem };
     const jenis = (item.jenisKegiatan || '').trim();
     const waktuStr = formatReadableDateTime(item.waktuKegiatan);
     const oldKet = item.keteranganKegiatan || item.keterangan || "";
@@ -1869,8 +1962,8 @@
       const result = await res.json();
 
       if (result.status === "deleted") {
-        allReports = allReports.filter(r => r !== item);
-        localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 100)));
+        allReports = allReports.filter(r => !isSameReportRecord(r, item));
+        localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 200)));
 
         await triggerFilterReport();
         await triggerRenderAnalisa();
@@ -1941,6 +2034,7 @@
     }
 
     const targetKey = `${labelPetugas}_${tipeWaktu}_${nilaiWaktu}_${key}`;
+    const previousTarget = onlineTargets[targetKey];
     let targetVal = 0;
 
     if (key === 'Uji Kelayakan') {
@@ -1968,6 +2062,10 @@
       const result = await res.json();
       if (result.status === "success") {
         alert(`✅ Target "${key}" untuk ${labelPetugas} berhasil disimpan!`);
+      } else if (result.status === "forbidden") {
+        onlineTargets[targetKey] = previousTarget || 0;
+        localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
+        alert("⛔ " + (result.message || "Akses ditolak: Hanya BM yang dapat mengubah Target KPI."));
       }
     } catch(err) {}
 
@@ -1978,14 +2076,14 @@
     const dashboard = document.getElementById('analisaDashboard');
     if (!dashboard) return;
     
-    const offlineData = await getAllOfflineReports();
+    const offlineData = (currentUser && currentUser.role === 'VIEWER') ? [] : await getAllOfflineReports();
     const combinedData = [...offlineData, ...allReports];
     await renderAnalisa(combinedData);
   }
 
   async function renderAnalisa(reportsData) {
     if (!reportsData) {
-       const offlineData = await getAllOfflineReports();
+       const offlineData = (currentUser && currentUser.role === 'VIEWER') ? [] : await getAllOfflineReports();
        reportsData = [...offlineData, ...allReports];
     }
     
@@ -2054,6 +2152,7 @@
     let countPencairan = 0;
 
     let counts = { 
+      'UK VAL BM': 0,
       'Uji Kelayakan': 0, 
       'Akad Pencairan': 0, 
       'Hasil Penagihan PAR': 0, 
@@ -2203,7 +2302,7 @@
       </div>
     `;
 
-    const colors = ['#00bcd4', '#34d399', '#f59e0b', '#7c2d96', '#38bdf8', '#ef4444', '#94a3b8'];
+    const colors = ['#a855f7', '#00bcd4', '#34d399', '#f59e0b', '#7c2d96', '#38bdf8', '#ef4444', '#94a3b8'];
     let colorIndex = 0;
 
     htmlContent += `<h4 style="font-size:11px; color:var(--turquoise-blue); margin-bottom:8px; margin-top:14px; text-transform:uppercase; font-weight:800;">KOMPOSISI KEGIATAN & TARGET KPI ONLINE</h4>`;
@@ -2314,7 +2413,7 @@
   }
 
   async function triggerFilterReport() {
-    const offlineData = await getAllOfflineReports();
+    const offlineData = (currentUser && currentUser.role === 'VIEWER') ? [] : await getAllOfflineReports();
     const combined = [...offlineData, ...allReports];
     applyFilters(combined);
   }
@@ -2385,7 +2484,7 @@
     currentRenderedReports = [];
     
     if (!reports || reports.length === 0) {
-      container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9px; padding: 15px;">Belum ada laporan pada tanggal ini.</p>`; 
+      container.innerHTML = `<p style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 9px; padding: 15px;">Belum ada laporan pada filter tanggal ini. Tekan <b>Reset</b> untuk melihat seluruh riwayat.</p>`; 
       return;
     }
 
@@ -2393,6 +2492,7 @@
     const renderList = reports.slice(0, maxRender);
     currentRenderedReports = renderList;
     const fragment = document.createDocumentFragment();
+    const isViewer = currentUser && currentUser.role === 'VIEWER';
 
     renderList.forEach((item, idx) => {
       const card = document.createElement('div'); 
@@ -2441,7 +2541,7 @@
         ? `<div class="card-actions">
              <button type="button" class="btn-card-edit" onclick="openEditModal(${idx})">✏️ Edit</button>
            </div>`
-        : `<div class="view-only-tag">🔒 Hanya Lihat</div>`;
+        : (isViewer ? '' : `<div class="view-only-tag">🔒 Hanya Lihat</div>`);
 
       card.innerHTML = `
         <div>
@@ -2483,7 +2583,6 @@
 
   function populatePetugasDropdown() {
     const listSemuaPetugas = ["Zidan", "Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
-    const listStafOperasional = ["Abdul Hamit", "Frengky", "Fatimah", "Hikmah Aulia", "Ahmad Irpansah"];
     
     const selectRiwayat = document.getElementById("filterPetugas");
     const selectAnalisa = document.getElementById("analisaPetugas");
@@ -2497,7 +2596,7 @@
 
     if (selectAnalisa) {
       selectAnalisa.innerHTML = `<option value="">Semua Petugas (Keseluruhan Tim)</option>`;
-      listStafOperasional.forEach(p => {
+      listSemuaPetugas.forEach(p => {
         selectAnalisa.innerHTML += `<option value="${p}">${p}</option>`;
       });
     }
