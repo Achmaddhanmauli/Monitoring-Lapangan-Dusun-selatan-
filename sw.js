@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bpars-v45';
+const CACHE_NAME = 'bpars-v46';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -28,7 +28,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || event.request.url.includes('script.google.com')) {
+  if (event.request.method !== 'GET' || event.request.url.includes('script.google.com') || event.request.url.includes('script.googleusercontent.com')) {
     return;
   }
 
