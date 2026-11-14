@@ -1,8 +1,9 @@
-const CACHE_NAME = 'bpars-v51';
+const CACHE_NAME = 'bpars-v52';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './logo-bpars.svg'
 ];
 
 self.addEventListener('install', (event) => {
