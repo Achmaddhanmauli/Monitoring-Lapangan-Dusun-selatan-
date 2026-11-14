@@ -757,6 +757,33 @@
   let isLiveCameraMode = true;
   let isSyncing = false;
 
+  function safeStorageGet(key, fallback = null) {
+    try {
+      const val = localStorage.getItem(key);
+      return val !== null ? val : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function safeStorageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function safeStorageRemove(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   async function safeFetchJson(url, options = {}, timeoutMs = 20000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -869,7 +896,7 @@
 
   async function migrateLegacyLocalStorageQueue() {
     try {
-      const legacyRaw = localStorage.getItem('offline_reports');
+      const legacyRaw = safeStorageGet('offline_reports');
       if (!legacyRaw) return;
       const legacyList = JSON.parse(legacyRaw);
       if (Array.isArray(legacyList) && legacyList.length > 0) {
@@ -880,7 +907,7 @@
           await saveOfflineReportDB(item, false);
         }
       }
-      localStorage.removeItem('offline_reports');
+      safeStorageRemove('offline_reports');
     } catch (e) {}
   }
 
@@ -896,7 +923,7 @@
       });
     } catch (e) {
       try {
-        return JSON.parse(localStorage.getItem('offline_reports') || '[]');
+        return JSON.parse(safeStorageGet('offline_reports', '[]'));
       } catch (err) {
         return [];
       }
@@ -917,11 +944,11 @@
         req.onerror = () => reject(req.error);
       });
     } catch (e) {
-      let fallback = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      let fallback = JSON.parse(safeStorageGet('offline_reports', '[]'));
       const idx = fallback.findIndex(r => r.clientId === payload.clientId);
       if (idx !== -1) fallback[idx] = payload;
       else fallback.push(payload);
-      localStorage.setItem('offline_reports', JSON.stringify(fallback));
+      safeStorageSet('offline_reports', JSON.stringify(fallback));
     }
     if (shouldUpdateCounter) {
       await updateOfflineQueueCounter();
@@ -939,18 +966,18 @@
         req.onerror = () => reject(req.error);
       });
     } catch (e) {
-      let currentQueue = JSON.parse(localStorage.getItem('offline_reports') || '[]');
+      let currentQueue = JSON.parse(safeStorageGet('offline_reports', '[]'));
       let updatedQueue = currentQueue.filter(r => {
         const rId = r.clientId || `${r.namaPetugas}_${r.waktuKegiatan}_${r.jenisKegiatan}`;
         return rId !== itemId;
       });
-      localStorage.setItem('offline_reports', JSON.stringify(updatedQueue));
+      safeStorageSet('offline_reports', JSON.stringify(updatedQueue));
     }
   }
 
   function loadSavedSession() {
     try {
-      const raw = localStorage.getItem('bpars_user_session');
+      const raw = safeStorageGet('bpars_user_session');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && parsed.namaPetugas) {
@@ -959,7 +986,7 @@
         }
       }
     } catch (e) {
-      localStorage.removeItem('bpars_user_session');
+      safeStorageRemove('bpars_user_session');
     }
     return false;
   }
@@ -970,7 +997,7 @@
       role: role || (namaPetugas.toLowerCase() === 'zidan' ? 'BM' : 'BP'),
       loginAt: new Date().toISOString()
     };
-    localStorage.setItem('bpars_user_session', JSON.stringify(currentUser));
+    safeStorageSet('bpars_user_session', JSON.stringify(currentUser));
   }
 
   async function enterViewerMode() {
@@ -1073,7 +1100,7 @@
       if (!yakin) return;
     }
 
-    localStorage.removeItem('bpars_user_session');
+    safeStorageRemove('bpars_user_session');
     currentUser = null;
     const loginForm = document.getElementById('loginPinForm');
     const regForm = document.getElementById('registerPinForm');
@@ -1238,10 +1265,10 @@
     await updateOfflineQueueCounter();
     
     try {
-      allReports = JSON.parse(localStorage.getItem('cached_reports') || '[]');
-      onlineTargets = JSON.parse(localStorage.getItem('cached_targets') || '{}');
+      allReports = JSON.parse(safeStorageGet('cached_reports', '[]'));
+      onlineTargets = JSON.parse(safeStorageGet('cached_targets', '{}'));
     } catch(e) {
-      localStorage.removeItem('cached_reports');
+      safeStorageRemove('cached_reports');
       allReports = [];
     }
 
@@ -1278,7 +1305,7 @@
       }
     } catch (err) {
       console.error("Initialization error:", err);
-      localStorage.removeItem('bpars_user_session');
+      safeStorageRemove('bpars_user_session');
       applySessionToAppUI();
     }
   });
@@ -1315,17 +1342,23 @@
   }
 
   function markClientIdAsSent(itemId) {
-    let sentIds = JSON.parse(localStorage.getItem('sent_report_ids') || '[]');
-    if (!sentIds.includes(itemId)) {
-      sentIds.push(itemId);
-      if (sentIds.length > 250) sentIds = sentIds.slice(-250);
-      localStorage.setItem('sent_report_ids', JSON.stringify(sentIds));
-    }
+    try {
+      let sentIds = JSON.parse(safeStorageGet('sent_report_ids', '[]'));
+      if (!sentIds.includes(itemId)) {
+        sentIds.push(itemId);
+        if (sentIds.length > 250) sentIds = sentIds.slice(-250);
+        safeStorageSet('sent_report_ids', JSON.stringify(sentIds));
+      }
+    } catch (e) {}
   }
 
   function isClientIdAlreadySent(itemId) {
-    let sentIds = JSON.parse(localStorage.getItem('sent_report_ids') || '[]');
-    return sentIds.includes(itemId);
+    try {
+      let sentIds = JSON.parse(safeStorageGet('sent_report_ids', '[]'));
+      return sentIds.includes(itemId);
+    } catch (e) {
+      return false;
+    }
   }
 
   function switchTab(tab) {
@@ -1832,8 +1865,8 @@
       allReports = json.data || [];
       onlineTargets = json.targets || {};
       
-      localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 200)));
-      localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
+      safeStorageSet('cached_reports', JSON.stringify(allReports.slice(0, 200)));
+      safeStorageSet('cached_targets', JSON.stringify(onlineTargets));
       
       await triggerFilterReport();
       await triggerRenderAnalisa();
@@ -2001,7 +2034,7 @@
             }
           });
 
-          localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 200)));
+          safeStorageSet('cached_reports', JSON.stringify(allReports.slice(0, 200)));
 
           closeEditModal();
           await triggerFilterReport();
@@ -2099,7 +2132,7 @@
 
       if (result.status === "deleted") {
         allReports = allReports.filter(r => !isSameReportRecord(r, item));
-        localStorage.setItem('cached_reports', JSON.stringify(allReports.slice(0, 200)));
+        safeStorageSet('cached_reports', JSON.stringify(allReports.slice(0, 200)));
 
         await triggerFilterReport();
         await triggerRenderAnalisa();
@@ -2192,7 +2225,7 @@
     }
 
     onlineTargets[targetKey] = targetVal;
-    localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
+    safeStorageSet('cached_targets', JSON.stringify(onlineTargets));
 
     try {
       const result = await safeFetchJson(SCRIPT_URL, {
@@ -2209,7 +2242,7 @@
         alert(`✅ Target "${key}" untuk ${labelPetugas} berhasil disimpan!`);
       } else if (result.status === "forbidden") {
         onlineTargets[targetKey] = previousTarget || 0;
-        localStorage.setItem('cached_targets', JSON.stringify(onlineTargets));
+        safeStorageSet('cached_targets', JSON.stringify(onlineTargets));
         alert("⛔ " + (result.message || "Akses ditolak: Hanya BM yang dapat mengubah Target KPI."));
       }
     } catch(err) {
