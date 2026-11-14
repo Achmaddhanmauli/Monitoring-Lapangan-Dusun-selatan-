@@ -799,12 +799,24 @@
 
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
-    return String(str)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """)
-      .replace(/'/g, "'");
+    const htmlMap = {
+      "\u0026": "\u0026amp;",
+      "\u003C": "\u0026lt;",
+      "\u003E": "\u0026gt;",
+      "\u0022": "\u0026quot;",
+      "\u0027": "\u0026#39;"
+    };
+    return String(str).replace(/[\u0026\u003C\u003E\u0022\u0027]/g, function(ch) {
+      return htmlMap[ch];
+    });
+  }
+
+  function handleImgLoadError(imgEl) {
+    if (!imgEl || !imgEl.parentNode) return;
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = 'height: 55px; background: rgba(239,68,68,0.15); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight: bold;';
+    errDiv.textContent = 'Gagal Muat Drive';
+    imgEl.parentNode.replaceChild(errDiv, imgEl);
   }
 
   function isSameReportRecord(a, b) {
@@ -2642,7 +2654,7 @@
 
       const safeImgSrc = escapeHtml(imgSrc);
       const fotoHtml = imgSrc 
-        ? `<img src="${safeImgSrc}" class="img-preview" loading="lazy" onclick="openModalByIdx(${idx})" onerror="this.onerror=null; this.outerHTML='<div style=\\'height: 55px; background: rgba(239,68,68,0.15); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 7.5px; font-weight:bold;\\'>Gagal Muat Drive</div>';">`
+        ? `<img src="${safeImgSrc}" class="img-preview" loading="lazy" onclick="openModalByIdx(${idx})" onerror="handleImgLoadError(this)">`
         : `<div style="height: 55px; background: rgba(255,255,255,0.03); border-radius: 4px; margin-top: 4px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 7.5px;">Tanpa Foto</div>`;
       
       const katMitra = item.kategoriMitra ? `<span style="color: var(--turquoise-blue); font-weight:800;">(${escapeHtml(item.kategoriMitra)})</span>` : '';
