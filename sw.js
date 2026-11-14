@@ -1,15 +1,17 @@
-const CACHE_NAME = 'bpars-v52';
+const CACHE_NAME = 'bpars-v55';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
   './logo-bpars.svg'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(ASSETS_TO_CACHE).catch(() => {});
     }).then(() => self.skipWaiting())
   );
 });
