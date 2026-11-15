@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BPARS Pro - Performance Activity Reporting System</title>
-  <link rel="manifest" href="manifest.json?v=58">
+  <link rel="manifest" href="manifest.json?v=59">
   <link id="dynamicFavicon" rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="logo-bpars.svg">
   <link id="dynamicAppleIcon" rel="apple-touch-icon" href="icon-512.png">
@@ -932,6 +932,39 @@
       max-height: 75vh;
       border-radius: 10px;
     }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #ffffff !important;
+      -webkit-box-shadow: 0 0 0px 1000px #0f172a inset !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+
+    .auth-feedback-box {
+      margin-top: 10px;
+      padding: 9px 11px;
+      border-radius: 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      line-height: 1.4;
+      text-align: center;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #bae6fd;
+    }
+
+    .auth-feedback-box.error {
+      background: rgba(239, 68, 68, 0.16);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+    }
+
+    .auth-feedback-box.success {
+      background: rgba(16, 185, 129, 0.16);
+      border-color: rgba(16, 185, 129, 0.5);
+      color: #6ee7b7;
+    }
   </style>
 </head>
 <body>
@@ -983,21 +1016,9 @@
 
     <form id="loginPinForm">
       <div class="form-group">
-        <label>Pilih Nama Petugas</label>
-        <select id="loginNamaPetugas" class="form-control" required>
-          <option value="">-- Pilih Nama Anda --</option>
-          <option value="Zidan">Zidan (BM)</option>
-          <option value="Abdul Hamit">Abdul Hamit</option>
-          <option value="Frengky">Frengky</option>
-          <option value="Fatimah">Fatimah</option>
-          <option value="Hikmah Aulia">Hikmah Aulia</option>
-          <option value="Ahmad Irpansah">Ahmad Irpansah</option>
-        </select>
-      </div>
-      <div class="form-group">
         <label>Masukkan PIN (4-6 Digit Angka)</label>
         <div class="pin-input-wrap">
-          <input type="password" id="loginPinInput" class="form-control" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="••••••" autocomplete="current-password" required>
+          <input type="password" id="loginPinInput" class="form-control" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code" required>
           <button type="button" class="btn-toggle-pin" aria-label="Lihat PIN" onclick="togglePinVisibility('loginPinInput', this)">👁️</button>
         </div>
       </div>
@@ -1020,19 +1041,21 @@
       <div class="form-group">
         <label>Buat PIN Baru (4-6 Digit Angka)</label>
         <div class="pin-input-wrap">
-          <input type="password" id="regPinInput" class="form-control" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="Contoh: 1234" autocomplete="new-password" required>
+          <input type="password" id="regPinInput" class="form-control" inputmode="numeric" maxlength="6" placeholder="Contoh: 1234" autocomplete="new-password" required>
           <button type="button" class="btn-toggle-pin" aria-label="Lihat PIN" onclick="togglePinVisibility('regPinInput', this)">👁️</button>
         </div>
       </div>
       <div class="form-group">
         <label>Konfirmasi PIN Baru</label>
         <div class="pin-input-wrap">
-          <input type="password" id="regPinConfirm" class="form-control" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="Ketik ulang PIN" autocomplete="new-password" required>
+          <input type="password" id="regPinConfirm" class="form-control" inputmode="numeric" maxlength="6" placeholder="Ketik ulang PIN" autocomplete="new-password" required>
           <button type="button" class="btn-toggle-pin" aria-label="Lihat PIN" onclick="togglePinVisibility('regPinConfirm', this)">👁️</button>
         </div>
       </div>
       <button type="submit" id="btnRegisterSubmit" class="btn-submit">Simpan PIN & Masuk</button>
     </form>
+
+    <div id="authFeedbackBox" class="auth-feedback-box hidden"></div>
 
     <button type="button" id="btnEnterViewer" class="btn-viewer" onclick="enterViewerMode()">🌐 Akses untuk Umum</button>
     <button type="button" class="btn-clear-cache" onclick="forceClearCacheAndReload()">🔄 Muat Ulang & Bersihkan Cache Aplikasi</button>
@@ -1452,6 +1475,18 @@
     }
   }
 
+  function setAuthFeedback(message, type = 'info') {
+    const box = document.getElementById('authFeedbackBox');
+    if (!box) return;
+    if (!message) {
+      box.className = 'auth-feedback-box hidden';
+      box.textContent = '';
+      return;
+    }
+    box.textContent = message;
+    box.className = 'auth-feedback-box' + (type === 'error' ? ' error' : (type === 'success' ? ' success' : ''));
+  }
+
   function togglePinVisibility(inputId, btnEl) {
     const inp = document.getElementById(inputId);
     if (!inp) return;
@@ -1499,11 +1534,20 @@
 
   function verifyLocalCachedPin(namaPetugas, pin) {
     try {
-      const key = namaPetugas.trim().toLowerCase();
       const cache = JSON.parse(safeStorageGet('bpars_verified_pins', '{}'));
-      const entry = cache[key];
-      if (entry && String(entry.pin) === String(pin).trim()) {
-        return entry;
+      const cleanPin = String(pin).trim();
+      if (namaPetugas) {
+        const key = namaPetugas.trim().toLowerCase();
+        const entry = cache[key];
+        if (entry && String(entry.pin) === cleanPin) {
+          return entry;
+        }
+      } else {
+        for (const k in cache) {
+          if (cache[k] && String(cache[k].pin) === cleanPin) {
+            return cache[k];
+          }
+        }
       }
     } catch (e) {}
     return null;
@@ -1579,18 +1623,14 @@
   }
 
   function escapeHtml(str) {
-        if (str === null || str === undefined) return "";
-        const htmlMap = {
-            "&": "&",
-            "<": "<",
-            ">": ">",
-            '"': """,
-            "'": "'"
-        };
-        return String(str).replace(/[&<>"']/g, function(ch) {
-            return htmlMap[ch];
-        });
-    }
+    if (str === null || str === undefined) return "";
+    const htmlMap = {
+      "&": "&",
+      "<": "<",
+      ">": ">",
+      '"': """,
+      "'": "'"
+    };
     return String(str).replace(/[&<>"']/g, function(ch) {
       return htmlMap[ch];
     });
@@ -1781,6 +1821,7 @@
   }
 
   function enterViewerMode() {
+    setAuthFeedback('');
     saveUserSession("Pengguna Umum", "VIEWER");
     applySessionToAppUI();
     switchTab('report');
@@ -1788,6 +1829,7 @@
   }
 
   function switchAuthMode(mode) {
+    setAuthFeedback('');
     const btnLogin = document.getElementById('btnAuthTabLogin');
     const btnReg = document.getElementById('btnAuthTabRegister');
     const formLogin = document.getElementById('loginPinForm');
@@ -1883,19 +1925,27 @@
   if (loginPinForm) {
     loginPinForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nama = document.getElementById('loginNamaPetugas').value.trim();
-      const pin = document.getElementById('loginPinInput').value.trim();
+      const loginNameEl = document.getElementById('loginNamaPetugas');
+      const nama = loginNameEl ? loginNameEl.value.trim() : "";
+      const pinEl = document.getElementById('loginPinInput');
+      const pin = pinEl ? pinEl.value.trim() : "";
 
-      if (!nama || !pin) return;
+      if (!pin) return;
+      if (!/^\d{4,6}$/.test(pin)) {
+        setAuthFeedback("⚠️ PIN harus berupa 4 sampai 6 digit angka.", "error");
+        return;
+      }
 
       const btn = document.getElementById('btnLoginSubmit');
       btn.disabled = true;
       btn.innerText = "Memverifikasi PIN...";
+      setAuthFeedback("⏳ Memverifikasi PIN petugas...");
 
       try {
         if (!navigator.onLine) {
           const cached = verifyLocalCachedPin(nama, pin);
           if (cached) {
+            setAuthFeedback('');
             saveUserSession(cached.namaPetugas, cached.role);
             applySessionToAppUI();
             switchTab('input');
@@ -1903,40 +1953,50 @@
             alert(`📶 Mode Offline: Berhasil masuk sebagai ${cached.namaPetugas} menggunakan PIN terverifikasi di perangkat ini.`);
             return;
           }
-          alert("⚠️ Perangkat sedang offline dan belum ada riwayat PIN terverifikasi di HP ini. Hubungkan ke internet untuk login pertama kali.");
+          setAuthFeedback("⚠️ Perangkat offline dan belum ada riwayat PIN terverifikasi di HP ini. Hubungkan ke internet untuk login pertama kali.", "error");
           return;
         }
 
+        const loginPayload = { action: "login_pin", pin: pin };
+        if (nama) loginPayload.namaPetugas = nama;
+
         const result = await safeFetchJson(SCRIPT_URL, {
           method: 'POST',
-          body: JSON.stringify({ action: "login_pin", namaPetugas: nama, pin: pin })
+          body: JSON.stringify(loginPayload)
         }, 30000, 1);
 
         if (result.status === "success") {
           const finalName = result.namaPetugas || nama;
+          if (!finalName) {
+            setAuthFeedback("❌ Server tidak mengembalikan nama petugas untuk PIN ini.", "error");
+            return;
+          }
           const finalRole = result.role || (finalName.toLowerCase() === 'zidan' ? 'BM' : 'BP');
           saveLocalVerifiedPin(finalName, pin, finalRole);
           saveUserSession(finalName, finalRole);
+          setAuthFeedback('');
           applySessionToAppUI();
           switchTab('input');
           initializeAppDataAfterLogin(false);
         } else if (result.status === "not_registered") {
-          alert("ℹ️ " + (result.message || "Akun belum mendaftarkan PIN. Silakan daftar PIN terlebih dahulu."));
-          document.getElementById('regNamaPetugas').value = nama;
           switchAuthMode('register');
+          const regNameEl = document.getElementById('regNamaPetugas');
+          if (regNameEl && nama) regNameEl.value = nama;
+          setAuthFeedback("ℹ️ " + (result.message || "PIN belum terdaftar. Silakan pilih nama Anda dan daftarkan PIN baru."), "info");
         } else {
-          alert("❌ " + (result.message || "PIN salah! Silakan coba lagi."));
+          setAuthFeedback("❌ " + (result.message || "PIN salah atau tidak ditemukan! Silakan coba lagi."), "error");
         }
       } catch (err) {
         const cached = verifyLocalCachedPin(nama, pin);
         if (cached) {
+          setAuthFeedback('');
           saveUserSession(cached.namaPetugas, cached.role);
           applySessionToAppUI();
           switchTab('input');
           initializeAppDataAfterLogin(false);
           alert(`⚠️ Server lambat/terganggu. Anda tetap masuk sebagai ${cached.namaPetugas} menggunakan PIN lokal terverifikasi.`);
         } else {
-          alert("Gagal terhubung ke server verifikasi: " + err.message);
+          setAuthFeedback("Gagal terhubung ke server verifikasi: " + err.message, "error");
         }
       } finally {
         btn.disabled = false;
@@ -1955,21 +2015,22 @@
 
       if (!nama || !pin1) return;
       if (!/^\d{4,6}$/.test(pin1)) {
-        alert("⚠️ PIN harus berupa 4 sampai 6 digit angka.");
+        setAuthFeedback("⚠️ PIN harus berupa 4 sampai 6 digit angka.", "error");
         return;
       }
       if (pin1 !== pin2) {
-        alert("⚠️ Konfirmasi PIN tidak cocok! Ketik ulang PIN yang sama.");
+        setAuthFeedback("⚠️ Konfirmasi PIN tidak cocok! Ketik ulang PIN yang sama.", "error");
         return;
       }
       if (!navigator.onLine) {
-        alert("⚠️ Koneksi internet diperlukan untuk mendaftarkan PIN baru.");
+        setAuthFeedback("⚠️ Koneksi internet diperlukan untuk mendaftarkan PIN baru.", "error");
         return;
       }
 
       const btn = document.getElementById('btnRegisterSubmit');
       btn.disabled = true;
       btn.innerText = "Mendaftarkan PIN...";
+      setAuthFeedback("⏳ Menyimpan PIN ke server...");
 
       try {
         const result = await safeFetchJson(SCRIPT_URL, {
@@ -1982,19 +2043,21 @@
           const finalRole = result.role || (finalName.toLowerCase() === 'zidan' ? 'BM' : 'BP');
           saveLocalVerifiedPin(finalName, pin1, finalRole);
           saveUserSession(finalName, finalRole);
+          setAuthFeedback('');
           alert(`✅ PIN untuk ${finalName} berhasil didaftarkan!\nHP Anda sekarang sudah masuk otomatis.`);
           applySessionToAppUI();
           switchTab('input');
           initializeAppDataAfterLogin(false);
         } else if (result.status === "already_registered") {
-          alert("ℹ️ " + result.message);
-          document.getElementById('loginNamaPetugas').value = nama;
           switchAuthMode('login');
+          const loginNameEl = document.getElementById('loginNamaPetugas');
+          if (loginNameEl) loginNameEl.value = nama;
+          setAuthFeedback("ℹ️ " + result.message, "info");
         } else {
-          alert("❌ " + (result.message || "Gagal mendaftarkan PIN."));
+          setAuthFeedback("❌ " + (result.message || "Gagal mendaftarkan PIN."), "error");
         }
       } catch (err) {
-        alert("Gagal mendaftarkan PIN: " + err.message);
+        setAuthFeedback("Gagal mendaftarkan PIN: " + err.message, "error");
       } finally {
         btn.disabled = false;
         btn.innerText = "Simpan PIN & Masuk";
@@ -3760,7 +3823,7 @@
   }
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=58').then(reg => {
+    navigator.serviceWorker.register('sw.js?v=59').then(reg => {
       reg.update();
     }).catch(() => {});
   }
