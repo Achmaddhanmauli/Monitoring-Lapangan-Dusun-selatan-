@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BPARS Pro - Performance Activity Reporting System</title>
-  <link rel="manifest" href="manifest.json?v=56">
+  <link rel="manifest" href="manifest.json?v=57">
   <link id="dynamicFavicon" rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="logo-bpars.svg">
   <link id="dynamicAppleIcon" rel="apple-touch-icon" href="icon-512.png">
@@ -1467,11 +1467,11 @@
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
     const htmlMap = {
-      "&": "&",
-      "<": "<",
-      ">": ">",
-      '"': """,
-      "'": "'"
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
     };
     return String(str).replace(/[&<>"']/g, function(ch) {
       return htmlMap[ch];
@@ -3625,7 +3625,14 @@
   }
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=56').then(reg => {
+    let swRefreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (swRefreshing) return;
+      swRefreshing = true;
+      window.location.reload();
+    });
+
+    navigator.serviceWorker.register('sw.js?v=57').then(reg => {
       reg.update();
     }).catch(() => {});
   }
