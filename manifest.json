@@ -3,6 +3,7 @@
   "short_name": "BPARS Pro",
   "description": "Sistem Pelaporan & Analisa Kinerja Lapangan Dusun Selatan",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#06070c",
   "theme_color": "#2e1065",
@@ -18,7 +19,13 @@
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "logo-bpars.svg",
