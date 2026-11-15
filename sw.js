@@ -41,7 +41,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-First untuk halaman HTML agar update kode selalu langsung masuk saat online
   if (event.request.mode === 'navigate' || event.request.url.endsWith('.html')) {
     event.respondWith(
       fetch(event.request)
@@ -62,7 +61,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-While-Revalidate untuk aset statis (ikon, manifest, logo)
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)
