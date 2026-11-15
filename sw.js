@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bpars-v58';
+const CACHE_NAME = 'bpars-v59';
 const CACHE_PREFIX = 'bpars-';
 const APP_SCOPE = self.registration.scope;
 const INDEX_URL = new URL('index.html', APP_SCOPE).href;
