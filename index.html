@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BPARS Pro - Performance Activity Reporting System</title>
-  <link rel="manifest" href="manifest.json?v=57">
+  <link rel="manifest" href="manifest.json?v=58">
   <link id="dynamicFavicon" rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="logo-bpars.svg">
   <link id="dynamicAppleIcon" rel="apple-touch-icon" href="icon-512.png">
@@ -98,6 +98,29 @@
       box-shadow: 0 4px 12px rgba(126, 34, 206, 0.4);
     }
 
+    .pin-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .pin-input-wrap .form-control {
+      padding-right: 38px;
+      letter-spacing: 2px;
+      font-weight: 700;
+    }
+
+    .btn-toggle-pin {
+      position: absolute;
+      right: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
     .btn-viewer {
       width: 100%;
       margin-top: 12px;
@@ -114,6 +137,19 @@
 
     .btn-viewer:active {
       transform: scale(0.98);
+    }
+
+    .btn-clear-cache {
+      width: 100%;
+      margin-top: 8px;
+      padding: 7px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-size: 9.5px;
+      font-weight: 700;
+      cursor: pointer;
     }
 
     /* MAIN CONTAINER */
@@ -960,7 +996,10 @@
       </div>
       <div class="form-group">
         <label>Masukkan PIN (4-6 Digit Angka)</label>
-        <input type="password" id="loginPinInput" class="form-control" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="••••••" required>
+        <div class="pin-input-wrap">
+          <input type="password" id="loginPinInput" class="form-control" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="••••••" autocomplete="current-password" required>
+          <button type="button" class="btn-toggle-pin" aria-label="Lihat PIN" onclick="togglePinVisibility('loginPinInput', this)">👁️</button>
+        </div>
       </div>
       <button type="submit" id="btnLoginSubmit" class="btn-submit">Masuk ke Aplikasi</button>
     </form>
@@ -980,16 +1019,23 @@
       </div>
       <div class="form-group">
         <label>Buat PIN Baru (4-6 Digit Angka)</label>
-        <input type="password" id="regPinInput" class="form-control" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="Contoh: 1234" required>
+        <div class="pin-input-wrap">
+          <input type="password" id="regPinInput" class="form-control" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="Contoh: 1234" autocomplete="new-password" required>
+          <button type="button" class="btn-toggle-pin" aria-label="Lihat PIN" onclick="togglePinVisibility('regPinInput', this)">👁️</button>
+        </div>
       </div>
       <div class="form-group">
         <label>Konfirmasi PIN Baru</label>
-        <input type="password" id="regPinConfirm" class="form-control" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="Ketik ulang PIN" required>
+        <div class="pin-input-wrap">
+          <input type="password" id="regPinConfirm" class="form-control" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="Ketik ulang PIN" autocomplete="new-password" required>
+          <button type="button" class="btn-toggle-pin" aria-label="Lihat PIN" onclick="togglePinVisibility('regPinConfirm', this)">👁️</button>
+        </div>
       </div>
       <button type="submit" id="btnRegisterSubmit" class="btn-submit">Simpan PIN & Masuk</button>
     </form>
 
     <button type="button" id="btnEnterViewer" class="btn-viewer" onclick="enterViewerMode()">🌐 Akses untuk Umum</button>
+    <button type="button" class="btn-clear-cache" onclick="forceClearCacheAndReload()">🔄 Muat Ulang & Bersihkan Cache Aplikasi</button>
   </div>
 </div>
 
@@ -1406,6 +1452,63 @@
     }
   }
 
+  function togglePinVisibility(inputId, btnEl) {
+    const inp = document.getElementById(inputId);
+    if (!inp) return;
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      if (btnEl) btnEl.innerText = '🙈';
+    } else {
+      inp.type = 'password';
+      if (btnEl) btnEl.innerText = '👁️';
+    }
+  }
+
+  async function forceClearCacheAndReload() {
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const r of regs) {
+          await r.unregister();
+        }
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        for (const k of keys) {
+          await caches.delete(k);
+        }
+      }
+    } catch (e) {}
+    const cleanUrl = window.location.pathname + '?reload=' + Date.now();
+    window.location.replace(cleanUrl);
+  }
+
+  function saveLocalVerifiedPin(namaPetugas, pin, role) {
+    try {
+      const key = namaPetugas.trim().toLowerCase();
+      const cache = JSON.parse(safeStorageGet('bpars_verified_pins', '{}'));
+      cache[key] = {
+        namaPetugas: namaPetugas.trim(),
+        pin: String(pin).trim(),
+        role: role || (key === 'zidan' ? 'BM' : 'BP'),
+        savedAt: Date.now()
+      };
+      safeStorageSet('bpars_verified_pins', JSON.stringify(cache));
+    } catch (e) {}
+  }
+
+  function verifyLocalCachedPin(namaPetugas, pin) {
+    try {
+      const key = namaPetugas.trim().toLowerCase();
+      const cache = JSON.parse(safeStorageGet('bpars_verified_pins', '{}'));
+      const entry = cache[key];
+      if (entry && String(entry.pin) === String(pin).trim()) {
+        return entry;
+      }
+    } catch (e) {}
+    return null;
+  }
+
   function saveCachedReportsCompact(reportsList) {
     try {
       const slimList = (reportsList || []).slice(0, 150).map(r => {
@@ -1419,37 +1522,48 @@
     } catch (e) {}
   }
 
-  async function safeFetchJson(url, options = {}, timeoutMs = 25000) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const fetchOpts = { ...options, signal: controller.signal };
-      if (fetchOpts.method === 'POST') {
-        fetchOpts.headers = {
-          'Content-Type': 'text/plain;charset=utf-8',
-          ...(fetchOpts.headers || {})
-        };
-      }
-      const response = await fetch(url, fetchOpts);
-      const rawText = await response.text();
-      const warnBanner = document.getElementById('networkWarningBanner');
-      if (warnBanner) warnBanner.classList.add('hidden');
-
-      let parsed;
+  async function safeFetchJson(url, options = {}, timeoutMs = 30000, retries = 1) {
+    let lastError = null;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        parsed = JSON.parse(rawText);
-      } catch (parseErr) {
-        throw new Error("Server Google Apps Script tidak mengembalikan JSON. Pastikan Deployment Web App diatur ke 'Anyone' (Siapa saja) dan telah di-deploy sebagai 'New version'.");
+        const fetchOpts = {
+          redirect: 'follow',
+          cache: 'no-store',
+          ...options,
+          signal: controller.signal
+        };
+        if (fetchOpts.method === 'POST') {
+          fetchOpts.headers = {
+            'Content-Type': 'text/plain;charset=utf-8',
+            ...(fetchOpts.headers || {})
+          };
+        }
+        const response = await fetch(url, fetchOpts);
+        const rawText = await response.text();
+        const warnBanner = document.getElementById('networkWarningBanner');
+        if (warnBanner) warnBanner.classList.add('hidden');
+
+        let parsed;
+        try {
+          parsed = JSON.parse(rawText);
+        } catch (parseErr) {
+          throw new Error("Server Google Apps Script tidak mengembalikan JSON. Pastikan Deployment Web App diatur ke 'Anyone' (Siapa saja) dan di-deploy sebagai 'New version'.");
+        }
+        return parsed;
+      } catch (err) {
+        lastError = (err && err.name === 'AbortError')
+          ? new Error("Koneksi ke server Google melebihi batas waktu (timeout). Periksa sinyal atau matikan Brave Shields.")
+          : err;
+        if (attempt < retries) {
+          await new Promise(res => setTimeout(res, 1000));
+        }
+      } finally {
+        clearTimeout(timer);
       }
-      return parsed;
-    } catch (err) {
-      if (err && err.name === 'AbortError') {
-        throw new Error("Koneksi ke server Google melebihi batas waktu (timeout). Periksa jaringan atau matikan Brave Shields.");
-      }
-      throw err;
-    } finally {
-      clearTimeout(timer);
     }
+    throw lastError;
   }
 
   function parseCleanNumber(val) {
@@ -1467,11 +1581,11 @@
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
     const htmlMap = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
+      "&": "&",
+      "<": "<",
+      ">": ">",
+      '"': """,
+      "'": "'"
     };
     return String(str).replace(/[&<>"']/g, function(ch) {
       return htmlMap[ch];
@@ -1662,23 +1776,11 @@
     safeStorageSet('bpars_user_session', JSON.stringify(currentUser));
   }
 
-  async function enterViewerMode() {
-    const btnViewer = document.getElementById('btnEnterViewer');
-    if (btnViewer) {
-      btnViewer.disabled = true;
-      btnViewer.innerText = "⏳ Memuat Data Publik...";
-    }
-    try {
-      saveUserSession("Pengguna Umum", "VIEWER");
-      applySessionToAppUI();
-      switchTab('report');
-      await initializeAppDataAfterLogin(true);
-    } finally {
-      if (btnViewer) {
-        btnViewer.disabled = false;
-        btnViewer.innerText = "🌐 Akses untuk Umum";
-      }
-    }
+  function enterViewerMode() {
+    saveUserSession("Pengguna Umum", "VIEWER");
+    applySessionToAppUI();
+    switchTab('report');
+    initializeAppDataAfterLogin(false);
   }
 
   function switchAuthMode(mode) {
@@ -1688,15 +1790,15 @@
     const formReg = document.getElementById('registerPinForm');
 
     if (mode === 'login') {
-      btnLogin.classList.add('active');
-      btnReg.classList.remove('active');
-      formLogin.classList.remove('hidden');
-      formReg.classList.add('hidden');
+      if (btnLogin) btnLogin.classList.add('active');
+      if (btnReg) btnReg.classList.remove('active');
+      if (formLogin) formLogin.classList.remove('hidden');
+      if (formReg) formReg.classList.add('hidden');
     } else {
-      btnReg.classList.add('active');
-      btnLogin.classList.remove('active');
-      formReg.classList.remove('hidden');
-      formLogin.classList.add('hidden');
+      if (btnReg) btnReg.classList.add('active');
+      if (btnLogin) btnLogin.classList.remove('active');
+      if (formReg) formReg.classList.remove('hidden');
+      if (formLogin) formLogin.classList.add('hidden');
     }
   }
 
@@ -1781,23 +1883,36 @@
       const pin = document.getElementById('loginPinInput').value.trim();
 
       if (!nama || !pin) return;
-      if (!navigator.onLine) {
-        alert("⚠️ Koneksi internet diperlukan untuk verifikasi PIN saat pertama kali masuk.");
-        return;
-      }
 
       const btn = document.getElementById('btnLoginSubmit');
       btn.disabled = true;
       btn.innerText = "Memverifikasi PIN...";
 
       try {
+        if (!navigator.onLine) {
+          const cached = verifyLocalCachedPin(nama, pin);
+          if (cached) {
+            saveUserSession(cached.namaPetugas, cached.role);
+            applySessionToAppUI();
+            switchTab('input');
+            initializeAppDataAfterLogin(false);
+            alert(`📶 Mode Offline: Berhasil masuk sebagai ${cached.namaPetugas} menggunakan PIN terverifikasi di perangkat ini.`);
+            return;
+          }
+          alert("⚠️ Perangkat sedang offline dan belum ada riwayat PIN terverifikasi di HP ini. Hubungkan ke internet untuk login pertama kali.");
+          return;
+        }
+
         const result = await safeFetchJson(SCRIPT_URL, {
           method: 'POST',
           body: JSON.stringify({ action: "login_pin", namaPetugas: nama, pin: pin })
-        }, 18000);
+        }, 30000, 1);
 
         if (result.status === "success") {
-          saveUserSession(result.namaPetugas, result.role);
+          const finalName = result.namaPetugas || nama;
+          const finalRole = result.role || (finalName.toLowerCase() === 'zidan' ? 'BM' : 'BP');
+          saveLocalVerifiedPin(finalName, pin, finalRole);
+          saveUserSession(finalName, finalRole);
           applySessionToAppUI();
           switchTab('input');
           initializeAppDataAfterLogin(false);
@@ -1809,7 +1924,16 @@
           alert("❌ " + (result.message || "PIN salah! Silakan coba lagi."));
         }
       } catch (err) {
-        alert("Gagal terhubung ke server verifikasi: " + err.message);
+        const cached = verifyLocalCachedPin(nama, pin);
+        if (cached) {
+          saveUserSession(cached.namaPetugas, cached.role);
+          applySessionToAppUI();
+          switchTab('input');
+          initializeAppDataAfterLogin(false);
+          alert(`⚠️ Server lambat/terganggu. Anda tetap masuk sebagai ${cached.namaPetugas} menggunakan PIN lokal terverifikasi.`);
+        } else {
+          alert("Gagal terhubung ke server verifikasi: " + err.message);
+        }
       } finally {
         btn.disabled = false;
         btn.innerText = "Masuk ke Aplikasi";
@@ -1847,11 +1971,14 @@
         const result = await safeFetchJson(SCRIPT_URL, {
           method: 'POST',
           body: JSON.stringify({ action: "register_pin", namaPetugas: nama, pin: pin1 })
-        }, 18000);
+        }, 30000, 1);
 
         if (result.status === "success") {
-          saveUserSession(result.namaPetugas, result.role);
-          alert(`✅ PIN untuk ${result.namaPetugas} berhasil didaftarkan!\nHP Anda sekarang sudah masuk otomatis.`);
+          const finalName = result.namaPetugas || nama;
+          const finalRole = result.role || (finalName.toLowerCase() === 'zidan' ? 'BM' : 'BP');
+          saveLocalVerifiedPin(finalName, pin1, finalRole);
+          saveUserSession(finalName, finalRole);
+          alert(`✅ PIN untuk ${finalName} berhasil didaftarkan!\nHP Anda sekarang sudah masuk otomatis.`);
           applySessionToAppUI();
           switchTab('input');
           initializeAppDataAfterLogin(false);
@@ -2040,10 +2167,8 @@
       allReports = [];
     }
 
-    if (allReports.length > 0) {
-      await triggerFilterReport();
-      await triggerRenderAnalisa();
-    }
+    await triggerFilterReport();
+    await triggerRenderAnalisa();
 
     if (waitForFetch) {
       await fetchBackgroundData();
@@ -2059,16 +2184,16 @@
     }
   }
 
-  window.addEventListener('DOMContentLoaded', async () => {
+  function bootstrapApp() {
     try {
       const isLoggedIn = loadSavedSession();
       applySessionToAppUI();
       if (isLoggedIn) {
         if (currentUser && currentUser.role === 'VIEWER') {
           switchTab('report');
-          await initializeAppDataAfterLogin(true);
+          initializeAppDataAfterLogin(false);
         } else {
-          await initializeAppDataAfterLogin(false);
+          initializeAppDataAfterLogin(false);
         }
       }
     } catch (err) {
@@ -2076,7 +2201,13 @@
       safeStorageRemove('bpars_user_session');
       applySessionToAppUI();
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapApp);
+  } else {
+    bootstrapApp();
+  }
 
   window.addEventListener('online', () => {
     updateOnlineStatus();
@@ -2526,7 +2657,7 @@
             const result = await safeFetchJson(SCRIPT_URL, {
               method: 'POST',
               body: JSON.stringify(payload)
-            }, 30000);
+            }, 30000, 1);
 
             if (result.status === "success" || result.status === "duplicate_ignored") {
               markClientIdAsSent(payload.clientId);
@@ -2655,7 +2786,7 @@
           const result = await safeFetchJson(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(item)
-          }, 30000);
+          }, 30000, 1);
 
           if (result.status === "success" || result.status === "duplicate_ignored") {
             markClientIdAsSent(itemId);
@@ -2694,7 +2825,7 @@
 
   async function fetchBackgroundData() {
     try {
-      const json = await safeFetchJson(SCRIPT_URL + "?limit=2000&_t=" + new Date().getTime(), {}, 20000);
+      const json = await safeFetchJson(SCRIPT_URL + "?limit=2000&_t=" + new Date().getTime(), {}, 25000, 1);
       allReports = json.data || [];
       onlineTargets = json.targets || {};
 
@@ -2858,7 +2989,7 @@
         const result = await safeFetchJson(SCRIPT_URL, {
           method: 'POST',
           body: JSON.stringify(editPayload)
-        }, 18000);
+        }, 25000, 1);
 
         if (result.status === "updated") {
           allReports.forEach(r => {
@@ -2944,7 +3075,7 @@
       const result = await safeFetchJson(SCRIPT_URL, {
         method: 'POST',
         body: JSON.stringify(delPayload)
-      }, 18000);
+      }, 25000, 1);
 
       if (result.status === "deleted") {
         allReports = allReports.filter(r => !isSameReportRecord(r, item));
@@ -3056,7 +3187,7 @@
           targetKey: targetKey,
           targetVal: targetVal
         })
-      }, 15000);
+      }, 20000, 1);
 
       if (result.status === "success") {
         alert(`✅ Target "${key}" untuk ${labelPetugas} berhasil disimpan!`);
@@ -3625,14 +3756,7 @@
   }
 
   if ('serviceWorker' in navigator) {
-    let swRefreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (swRefreshing) return;
-      swRefreshing = true;
-      window.location.reload();
-    });
-
-    navigator.serviceWorker.register('sw.js?v=57').then(reg => {
+    navigator.serviceWorker.register('sw.js?v=58').then(reg => {
       reg.update();
     }).catch(() => {});
   }
