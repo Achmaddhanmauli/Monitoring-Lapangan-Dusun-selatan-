@@ -1453,9 +1453,14 @@
   }
 
   function parseCleanNumber(val) {
-    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    if (typeof val === 'number') return isNaN(val) ? 0 : Math.round(val);
     if (!val) return 0;
-    const digits = String(val).replace(/[^0-9]/g, '');
+    let str = String(val).replace(/rp/gi, '').trim();
+    if (/^\d+\.\d+$/.test(str)) {
+      return Math.round(parseFloat(str)) || 0;
+    }
+    str = str.replace(/,\d{1,2}$/, '');
+    const digits = str.replace(/[^0-9]/g, '');
     return parseInt(digits, 10) || 0;
   }
 
@@ -2056,7 +2061,6 @@
 
   window.addEventListener('DOMContentLoaded', async () => {
     try {
-      startGPSBackgroundWatch();
       const isLoggedIn = loadSavedSession();
       applySessionToAppUI();
       if (isLoggedIn) {
@@ -2146,7 +2150,7 @@
       if (btns[0]) btns[0].classList.add('active');
       const tabIn = document.getElementById('tab-input');
       if (tabIn) tabIn.classList.remove('hidden');
-      startGPSBackgroundWatch();
+      if (currentUser && currentUser.role !== 'VIEWER') startGPSBackgroundWatch();
     } else if (tab === 'report') {
       if (btns[1]) btns[1].classList.add('active');
       const tabRep = document.getElementById('tab-report');
@@ -2182,7 +2186,7 @@
   }
 
   function triggerFileInput() {
-    startGPSBackgroundWatch();
+    if (currentUser && currentUser.role !== 'VIEWER') startGPSBackgroundWatch();
     const fotoGiat = document.getElementById('fotoKegiatan');
     if (fotoGiat) fotoGiat.click();
   }
@@ -2241,15 +2245,17 @@
     const btnToggle = document.getElementById('btnToggleCameraMode');
     const statusText = document.getElementById('fileStatus');
 
-    if (containerPlafondKat) { containerPlafondKat.classList.add('hidden'); containerPlafondKat.class.remove('form-grid-2'); }
+    if (containerPlafondKat) { containerPlafondKat.classList.add('hidden'); containerPlafondKat.classList.remove('form-grid-2'); }
     if (wrapKategori) wrapKategori.classList.add('hidden');
     if (wrapPlafond) wrapPlafond.classList.add('hidden');
     if (groupPenagihan) groupPenagihan.classList.add('hidden');
 
     const katMitra = document.getElementById('kategoriMitra');
     const plaf = document.getElementById('plafond');
+    const nomPenagihanFmt = document.getElementById('nominalPenagihanFormat');
     if (katMitra) katMitra.required = false;
     if (plaf) plaf.required = false;
+    if (nomPenagihanFmt) nomPenagihanFmt.required = false;
 
     if (fileInput) fileInput.value = "";
     if (statusText) statusText.style.color = "var(--text-muted)";
@@ -2258,7 +2264,7 @@
     if (btnToggle) btnToggle.innerText = "📁 Mode Upload File";
     if (statusText) statusText.innerText = "Ambil Foto Kamera Belakang (Live)";
     resetGPSState();
-    startGPSBackgroundWatch();
+    if (currentUser && currentUser.role !== 'VIEWER') startGPSBackgroundWatch();
 
     if (jenis === 'UK VAL BM' || jenis === 'Akad Pencairan' || jenis === 'Hasil Penagihan PAR' || jenis === 'Kumpulan Pelayanan') {
       if (containerSwitch) containerSwitch.classList.remove('hidden');
@@ -2280,6 +2286,7 @@
       if (plaf) plaf.required = true;
     } else if (jenis === 'Hasil Penagihan PAR') {
       if (groupPenagihan) groupPenagihan.classList.remove('hidden');
+      if (nomPenagihanFmt) nomPenagihanFmt.required = true;
     }
   }
 
@@ -2288,7 +2295,7 @@
     if (input.files && input.files[0] && status) {
       status.innerText = "✓ Foto Berhasil Dipilih!";
       status.style.color = "#67e8f9";
-      startGPSBackgroundWatch();
+      if (currentUser && currentUser.role !== 'VIEWER') startGPSBackgroundWatch();
     }
   }
 
@@ -2340,7 +2347,7 @@
   }
 
   function acquireGPS(isAuto = false) {
-    startGPSBackgroundWatch();
+    if (currentUser && currentUser.role !== 'VIEWER') startGPSBackgroundWatch();
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
         if (!isAuto) alert("Perangkat Anda tidak mendukung fitur Geolocation.");
@@ -2382,6 +2389,8 @@
             const gpsIn = document.getElementById('gps');
             if (gpsIn && !gpsIn.value) {
               btnGps.innerHTML = `<span style="color: var(--turquoise-blue);">📍</span> Ambil Titik Lokasi GPS`;
+            } else {
+              resetGPSState();
             }
           }
           const gpsIn = document.getElementById('gps');
@@ -2445,6 +2454,16 @@
       e.preventDefault();
       if (!currentUser || currentUser.role === 'VIEWER') return;
 
+      const jenisGiat = document.getElementById('jenisKegiatan');
+      const rawPenagihan = document.getElementById('nominalPenagihanRaw');
+      if (jenisGiat && jenisGiat.value === 'Hasil Penagihan PAR') {
+        const nomVal = parseCleanNumber(rawPenagihan ? rawPenagihan.value : 0);
+        if (nomVal <= 0) {
+          alert("⚠️ Nominal uang penagihan PAR wajib diisi lebih dari Rp 0.");
+          return;
+        }
+      }
+
       const fotoInput = document.getElementById('fotoKegiatan');
       if (!fotoInput || !fotoInput.files || !fotoInput.files[0]) {
         alert("📷 Foto kegiatan wajib dilampirkan terlebih dahulu!");
@@ -2472,11 +2491,16 @@
 
         if (btnSubmit) btnSubmit.innerText = "Mengompres Foto & Mengirim...";
         let fotoBase64 = await compressImage(fotoFile);
+        if (!fotoBase64) {
+          alert("⚠️ Gagal memproses file foto. Silakan ambil ulang foto kegiatan.");
+          if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.innerText = "Kirim Laporan"; }
+          return;
+        }
+
         const gpsAccEl = document.getElementById('gpsAccuracy');
-        const jenisGiat = document.getElementById('jenisKegiatan');
+        const gpsAccVal = gpsAccEl ? gpsAccEl.value : "0";
         const katMitra = document.getElementById('kategoriMitra');
         const plaf = document.getElementById('plafond');
-        const rawPenagihan = document.getElementById('nominalPenagihanRaw');
         const waktuGiat = document.getElementById('waktuKegiatan');
         const ketGiat = document.getElementById('keteranganKegiatan');
 
@@ -2493,7 +2517,7 @@
           keteranganKegiatan: ketGiat ? ketGiat.value : "",
           foto: fotoBase64,
           gps: gpsVal,
-          gpsAccuracy: gpsAccEl ? gpsAccEl.value : "0"
+          gpsAccuracy: gpsAccVal
         };
 
         if (navigator.onLine) {
@@ -2523,9 +2547,12 @@
         }
 
         reportForm.reset();
+        if (gpsInput) gpsInput.value = gpsVal;
+        if (gpsAccEl) gpsAccEl.value = gpsAccVal;
         applySessionToAppUI();
         if (rawPenagihan) rawPenagihan.value = "0";
         toggleFormKegiatan();
+        acquireGPS(true);
 
         if (waktuGiat) {
           const now = new Date();
@@ -2873,6 +2900,9 @@
     const item = { ...rawItem };
     const jenis = (item.jenisKegiatan || '').trim();
     const oldKet = item.keteranganKegiatan || item.keterangan || "";
+
+    const yakinHapus = confirm(`Hapus laporan "${jenis}" milik ${item.namaPetugas}?\nData yang dihapus akan dipindahkan ke Log_Hapus.`);
+    if (!yakinHapus) return;
 
     if (item.isOfflinePending) {
       const itemId = item.clientId || `${item.namaPetugas}_${item.waktuKegiatan}_${item.jenisKegiatan}`;
@@ -3324,7 +3354,7 @@
                   <input type="text" id="targetUjiKelayakanFormat" value="${currentTarget > 0 ? 'Rp ' + new Intl.NumberFormat('id-ID').format(currentTarget) : ''}" placeholder="Rp 0" oninput="formatTargetRupiahInput(this)"
                          style="flex: 1; padding: 4px 6px; font-size: 10px; border: 1px solid var(--turquoise-blue); border-radius: 4px; background:rgba(255,255,255,0.05); color:var(--text-main);">
                   <input type="hidden" id="targetUjiKelayakanRaw" value="${currentTarget}">
-                  <button type="button" onclick="simpanTargetLokal('${key}', '${labelPetugas}', '${tipeWaktu}', '${nilaiWaktu}')"
+                  <button type="button" onclick="simpanTargetLokal('${key}', '${escapeHtml(labelPetugas)}', '${escapeHtml(tipeWaktu)}', '${escapeHtml(nilaiWaktu)}')"
                           style="padding: 4px 10px; font-size: 9.5px; background: var(--amartha-purple); color: white; border: none; border-radius: 4px; font-weight: 800;">Simpan</button>
                 </div>
               </div>
@@ -3336,7 +3366,7 @@
                 <span style="font-size: 9px; font-weight: 800; color:var(--text-main);">${labelInputTarget}</span>
                 <input type="number" id="inputTarget_${key.replace(/\s/g, '')}" value="${currentTarget || ''}" placeholder="Jumlah"
                        style="width: 80px; padding: 4px 6px; font-size: 10px; border: 1px solid var(--turquoise-blue); border-radius: 4px; background:rgba(255,255,255,0.05); color:var(--text-main);">
-                <button type="button" onclick="simpanTargetLokal('${key}', '${labelPetugas}', '${tipeWaktu}', '${nilaiWaktu}')"
+                <button type="button" onclick="simpanTargetLokal('${key}', '${escapeHtml(labelPetugas)}', '${escapeHtml(tipeWaktu)}', '${escapeHtml(nilaiWaktu)}')"
                         style="padding: 4px 10px; font-size: 9.5px; background: var(--amartha-purple); color: white; border: none; border-radius: 4px; font-weight: 800;">Simpan</button>
               </div>
             `;
@@ -3597,7 +3627,7 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js?v=56').then(reg => {
       reg.update();
-    });
+    }).catch(() => {});
   }
 </script>
 
