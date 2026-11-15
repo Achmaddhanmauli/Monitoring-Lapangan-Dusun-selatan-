@@ -1625,12 +1625,12 @@
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
     const htmlMap = {
-      "&": "&",
-      "<": "<",
-      ">": ">",
-      '"': """,
-      "'": "'"
-    };
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;"
+};
     return String(str).replace(/[&<>"']/g, function(ch) {
       return htmlMap[ch];
     });
