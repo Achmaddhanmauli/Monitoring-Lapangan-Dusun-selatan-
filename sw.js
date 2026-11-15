@@ -1,17 +1,25 @@
-const CACHE_NAME = 'bpars-v57';
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  './logo-bpars.svg'
+const CACHE_NAME = 'bpars-v58';
+const CACHE_PREFIX = 'bpars-';
+const APP_SCOPE = self.registration.scope;
+const INDEX_URL = new URL('index.html', APP_SCOPE).href;
+
+// Cache only the app shell and static, same-origin assets. Never cache API or
+// user-specific responses.
+const PRECACHE_URLS = [
+  INDEX_URL,
+  new URL('manifest.json', APP_SCOPE).href,
+  new URL('icon-192.png', APP_SCOPE).href,
+  new URL('icon-512.png', APP_SCOPE).href,
+  new URL('logo-bpars.svg', APP_SCOPE).href
 ];
+const STATIC_PATHS = new Set(PRECACHE_URLS.map((url) => new URL(url).pathname));
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS_TO_CACHE).catch(() => {}))
+      // Fail installation if a required app-shell file is missing. This avoids
+      // activating a worker that cannot provide the expected offline shell.
+      .then((cache) => cache.addAll(PRECACHE_URLS))
       .then(() => self.skipWaiting())
   );
 });
@@ -19,63 +27,74 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cache) => {
-            if (cache !== CACHE_NAME) {
-              return caches.delete(cache);
-            }
-          })
-        );
-      })
+      .then((cacheNames) => Promise.all(
+        cacheNames
+          .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      ))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  if (
-    event.request.method !== 'GET' ||
-    event.request.url.includes('script.google.com') ||
-    event.request.url.includes('script.googleusercontent.com')
-  ) {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+
+  const requestUrl = new URL(request.url);
+  // Leave external requests (including Google Apps Script/API calls) entirely
+  // to the browser. The worker must not cache data or cross-origin responses.
+  if (requestUrl.origin !== self.location.origin) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(request);
+        const isAppEntry = requestUrl.pathname === new URL(APP_SCOPE).pathname ||
+          requestUrl.pathname === new URL(INDEX_URL).pathname;
+
+        if (
+          isAppEntry &&
+          response.status === 200 &&
+          response.type === 'basic' &&
+          !response.redirected &&
+          !/no-store/i.test(response.headers.get('Cache-Control') || '')
+        ) {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(INDEX_URL, response.clone());
+        }
+        return response;
+      } catch (error) {
+        const cachedIndex = await caches.match(INDEX_URL);
+        if (cachedIndex) return cachedIndex;
+        throw error;
+      }
+    })());
     return;
   }
 
-  if (event.request.mode === 'navigate' || event.request.url.endsWith('.html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          return caches.match(event.request, { ignoreSearch: true })
-            .then((cached) => cached || caches.match('./index.html'));
-        })
-    );
-    return;
-  }
+  // Restrict runtime caching to the explicit app-shell asset allowlist. This
+  // prevents accidental caching of same-origin API or personalized responses.
+  if (!STATIC_PATHS.has(requestUrl.pathname)) return;
 
-  event.respondWith(
-    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => cachedResponse || new Response('', { status: 408, statusText: 'Offline' }));
+  const cacheUrl = new URL(request.url);
+  cacheUrl.search = '';
+  cacheUrl.hash = '';
+  const cacheKey = cacheUrl.href;
 
-      return cachedResponse || fetchPromise;
-    })
-  );
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse) return cachedResponse;
+
+    const response = await fetch(request);
+    if (
+      response.status === 200 &&
+      response.type === 'basic' &&
+      !response.redirected &&
+      !/no-store/i.test(response.headers.get('Cache-Control') || '')
+    ) {
+      await cache.put(cacheKey, response.clone());
+    }
+    return response;
+  })());
 });
