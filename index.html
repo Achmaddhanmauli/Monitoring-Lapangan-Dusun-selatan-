@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BPARS Pro - Performance Activity Reporting System</title>
-  <link rel="manifest" href="manifest.json?v=55">
+  <link rel="manifest" href="manifest.json?v=56">
   <link id="dynamicFavicon" rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="logo-bpars.svg">
   <link id="dynamicAppleIcon" rel="apple-touch-icon" href="icon-512.png">
@@ -2241,7 +2241,7 @@
     const btnToggle = document.getElementById('btnToggleCameraMode');
     const statusText = document.getElementById('fileStatus');
 
-    if (containerPlafondKat) { containerPlafondKat.classList.add('hidden'); containerPlafondKat.classList.remove('form-grid-2'); }
+    if (containerPlafondKat) { containerPlafondKat.classList.add('hidden'); containerPlafondKat.class.remove('form-grid-2'); }
     if (wrapKategori) wrapKategori.classList.add('hidden');
     if (wrapPlafond) wrapPlafond.classList.add('hidden');
     if (groupPenagihan) groupPenagihan.classList.add('hidden');
@@ -3595,7 +3595,7 @@
   }
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=55').then(reg => {
+    navigator.serviceWorker.register('sw.js?v=56').then(reg => {
       reg.update();
     });
   }
